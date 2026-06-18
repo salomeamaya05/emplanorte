@@ -1,0 +1,78 @@
+================================================================================
+  REPORTE DE EJECUCION DE PRUEBAS — EMPLANORTE S.A.S.
+  Modulo : Ventas (VentaService)
+  Fecha  : 2026-06-09
+  Hora   : 23:05:00 (America/Bogota)
+  Entorno: Windows 11 | Java 25.0.1 | Spring Boot 3.2.5
+  Ejecucion: suite completa (mvn test) en una sola corrida
+================================================================================
+
+RESUMEN
+-------
+  Total de pruebas ejecutadas : 22   (15 originales + 7 nuevas rol tester)
+  Pruebas exitosas            : 22
+  Fallos                      : 0
+  Errores                     : 0
+  Omitidas                    : 0
+  Tiempo total                : 0.055 segundos
+  Resultado                   : APROBADO
+
+================================================================================
+DETALLE POR CASO DE PRUEBA
+================================================================================
+
+  Estado  Caso/Tema      Descripcion — respuesta del sistema
+  ------- -------------- ----------------------------------------------------------
+  PASO    CP-13          Venta exitosa con 1 producto, stock 10 -> 7
+  PASO    CP-14          Cantidad > stock -> RuntimeException "Stock insuficiente"
+  PASO    CP-15          Lista vacia -> RuntimeException "...al menos un producto"
+  PASO    CP-16          Multiples productos -> todos los stocks se actualizan
+  PASO    CP-17          Metodo de pago queda registrado
+  PASO    CP-20          Total = $1500 x 3 = $4500
+  PASO    CP-21          Ganancia = ($1500-$1000) x 2 = $1000
+  PASO    CP-22          Total multiples A $1000x2 + B $500x3 = $3500
+  PASO    CP-23          Decimal $1250.50 x 4 = $5002.00 sin perdida
+  PASO    CP-24          Stock 20 - 5 = 15
+  PASO    CP-25          Venta agota stock -> 0, estado "completada", no desaparece
+  PASO    Particion      Cantidad cero -> rechazada "mayor a cero"
+  PASO    Particion      Cantidad negativa -> rechazada "mayor a cero"
+  PASO    Particion      Usuario inexistente -> RuntimeException "Usuario..."
+  PASO    Particion      Producto inexistente -> RuntimeException con ID
+  --- nuevas (rol tester) -------------------------------------------------------
+  PASO    NUEVA          Venta SIN cliente (idCliente null) -> cliente nulo, OK
+  PASO    NUEVA          idCliente inexistente -> "Cliente no encontrado"
+  PASO    NUEVA          Fecha de venta se asigna automaticamente (no nula)
+  PASO    NUEVA          Con descuento: total = subtotal-descuento; ganancia=total-costo
+  PASO    NUEVA          Descuento > subtotal -> total = 0 (nunca negativo)
+  PASO    NUEVA          Venta a PERDIDA (precio<costo) -> ganancia negativa (-400)
+  PASO    NUEVA          Cantidad muy grande 999999999 -> rechazada por stock
+
+================================================================================
+REQUISITOS FUNCIONALES CUBIERTOS
+================================================================================
+
+  RF05 - Registro de ventas           CP-13..CP-16, sin/ con cliente   CUBIERTO
+  RF06 - Seleccion de productos       CP-17, metodo de pago            CUBIERTO
+  RF07 - Calculo totales/ganancias    CP-20..CP-23, descuento, perdida CUBIERTO
+  RF08 - Actualizacion de inventario  CP-24, CP-25, stock intacto      CUBIERTO
+
+================================================================================
+OBSERVACIONES
+================================================================================
+
+  - Modulo robusto: valida lista vacia, cantidad<=0, stock insuficiente,
+    usuario y cliente inexistentes. Calculos financieros con BigDecimal exactos.
+  - El total nunca queda negativo (se limita a 0 si el descuento excede).
+  - La ganancia SI puede ser negativa (venta a perdida): el sistema lo permite.
+  - CP-26 (concurrencia: dos ventas simultaneas) requiere prueba de integracion
+    con BD real / transaccional; no es verificable con mocks unitarios.
+  - Todas las pruebas usan mocks (Mockito): no requieren base de datos activa.
+
+================================================================================
+ARCHIVOS DEL PROYECTO
+================================================================================
+
+  Pruebas : src/backend/src/test/java/com/emplanorte/service/VentaServiceTest.java
+  Servicio: src/backend/src/main/java/com/emplanorte/service/VentaService.java
+
+================================================================================

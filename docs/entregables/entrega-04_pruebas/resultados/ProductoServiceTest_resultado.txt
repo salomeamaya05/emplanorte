@@ -1,0 +1,86 @@
+================================================================================
+  REPORTE DE EJECUCION DE PRUEBAS — EMPLANORTE S.A.S.
+  Modulo : Inventario / Productos (ProductoService)
+  Fecha  : 2026-06-09
+  Hora   : 23:05:00 (America/Bogota)
+  Entorno: Windows 11 | Java 25.0.1 | Spring Boot 3.2.5
+  Ejecucion: suite completa (mvn test) en una sola corrida
+================================================================================
+
+RESUMEN
+-------
+  Total de pruebas ejecutadas : 32   (17 originales + 15 nuevas rol tester)
+  Pruebas exitosas            : 25
+  Fallos                      : 7
+  Errores                     : 0
+  Omitidas                    : 0
+  Tiempo total                : 0.057 segundos
+  Resultado                   : NO APROBADO (7 validaciones del Plan no implementadas)
+
+  Nota: los 7 fallos son INTENCIONALES (rol tester). El metodo guardar() no
+  valida nada: solo fuerza activo=true y persiste. Las pruebas que exigen las
+  validaciones del Plan quedan en ROJO como evidencia documentada del gap.
+
+================================================================================
+COMPORTAMIENTO ACTUAL VERIFICADO (PASO)
+================================================================================
+
+  RF01/RF03  Registro
+    PASO  CP-01     Guardar producto completo -> queda activo y persistido
+    PASO  CP-08     Todos los campos se almacenan sin perdida
+    PASO  CP-09     Capacidad decimal 250.5 -> exacta
+    PASO  NUEVA     guardar fuerza activo=true aunque llegue activo=false
+    PASO  NUEVA     guardar acepta stock CERO (producto agotado valido)
+    PASO  -         Listar activos solo retorna activos / vacio sin error
+  RF02  Modificacion / baja logica
+    PASO  CP-05     Actualizar -> nuevos valores guardados
+    PASO  CP-05b    Actualizar inexistente -> "Producto no encontrado con el ID: 99"
+    PASO  CP-06/07  Desactivar -> activo=false, no se borra fisicamente
+    PASO  NUEVA     desactivar/actualizar inexistente -> mensaje EXACTO con ID
+  RF04  Ordenamiento
+    PASO  CP-10..12 Ordenar por nombre/stock/tamano/categoria; vacio sin error
+    PASO  NUEVA     criterio desconocido 'xyz' -> orden por defecto sin error
+    PASO  NUEVA     alias 'cantidad' -> ordena por stockDisponible
+    PASO  NUEVA     criterio 'NOMBRE' en mayusculas -> case-insensitive
+
+================================================================================
+VALIDACIONES DEL PLAN NO IMPLEMENTADAS (pruebas en ROJO — gap documentado)
+================================================================================
+
+  guardar() acepta CUALQUIER producto. Lo que el Plan exige y hoy NO ocurre:
+
+  Estado  Caso         Entrada                    Esperado            Obtenido
+  ------- ------------ -------------------------- ------------------- ----------
+  FALLA   CP-02        nombre vacio ""            rechazo validacion  se guarda
+  FALLA   CP-02b       nombre null                rechazo validacion  se guarda
+  FALLA   CP-02c       nombre solo espacios "   " rechazo (trim)      se guarda
+  FALLA   CP-03        stock negativo -10         rechazo validacion  se guarda
+  FALLA   Particion    precio negativo -1000      rechazo validacion  se guarda
+  FALLA   Particion    precio cero 0              rechazo validacion  se guarda
+  FALLA   CP-04        nombre duplicado           alerta/rechazo      duplicado
+
+  Mensaje tipico del fallo:
+    java.lang.AssertionError:
+    Expecting code to raise a throwable. (no se lanzo ninguna excepcion)
+
+================================================================================
+OBSERVACIONES Y CORRECCION PROPUESTA (no aplicada en esta ejecucion)
+================================================================================
+
+  En ProductoService.guardar() (o con Bean Validation en la entidad/DTO) agregar:
+    - nombre obligatorio y no en blanco (isBlank()).
+    - stockDisponible >= 0 y stockMinimo >= 0.
+    - costoUnitario >= 0 y precioVenta > 0.
+    - control de nombre/codigo duplicado (consultar antes de guardar) para
+      evitar duplicados silenciosos en la BD (CP-04).
+  Una vez implementado, las 7 pruebas pasaran a VERDE sin cambiar los asserts.
+  Mientras tanto se abre el issue en Jira (criterio seccion 7 del Plan).
+
+================================================================================
+ARCHIVOS DEL PROYECTO
+================================================================================
+
+  Pruebas : src/backend/src/test/java/com/emplanorte/service/ProductoServiceTest.java
+  Servicio: src/backend/src/main/java/com/emplanorte/service/ProductoService.java
+
+================================================================================

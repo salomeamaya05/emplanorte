@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMPLANORTE - Inventario</title>
+    <link rel="icon" type="image/png" href="../img/Logo.png">
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Estilos -->
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="../css/app.css">
+</head>
+<body class="app-body">
+    <div class="app-layout">
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Page Header -->
+            <div class="page-header">
+                <h1 class="page-title">Inventario</h1>
+                <div class="page-actions">
+    <button class="btn-app btn-app-outline" id="btnRegistrarCategoria">
+        <span>🏷️</span> Registrar Categoría
+    </button>
+    <button class="btn-app btn-app-primary" id="btnAgregarProducto">
+        <span>＋</span> Agregar Producto
+    </button>
+</div>
+            </div>
+
+            <!-- Page Body -->
+            <div class="page-body">
+                <!-- Summary Cards -->
+                <div class="summary-cards">
+                    <div class="summary-card">
+                        <div class="card-icon icon-primary">📦</div>
+                        <div class="card-info">
+                            <div class="card-label">Total Productos</div>
+                            <div class="card-value" id="totalProductos">0</div>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="card-icon icon-danger">⚠️</div>
+                        <div class="card-info">
+                            <div class="card-label">Stock Bajo</div>
+                            <div class="card-value" id="stockBajo">0</div>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="card-icon icon-warning">🏷️</div>
+                        <div class="card-info">
+                            <div class="card-label">Categorías</div>
+                            <div class="card-value" id="totalCategorias">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Bar -->
+                <div class="filter-bar">
+                    <div class="search-input">
+                        <input type="text" id="searchInput" placeholder="Buscar por nombre o código...">
+                    </div>
+                    <select id="filterCategoria">
+                        <option value="">Todas las categorías</option>
+                    </select>
+                </div>
+
+                <!-- Data Table -->
+                <div class="data-section">
+                    <table class="data-table" id="tablaProductos">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Nombre</th>
+                                <th>Categoría</th>
+                                <th>Costo</th>
+                                <th>Precio Venta</th>
+                                <th>Stock</th>
+                                <th>Stock Mín.</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyProductos">
+                            <!-- Se llena dinámicamente -->
+                        </tbody>
+                    </table>
+                    <!-- Empty State -->
+                    <div class="empty-state hidden" id="emptyState">
+                        <div class="empty-icon">📦</div>
+                        <div class="empty-title">No hay productos registrados</div>
+                        <div class="empty-desc">Agrega tu primer producto para comenzar a gestionar tu inventario.</div>
+                        <button class="btn-app btn-app-primary" id="btnEmptyAdd">
+                            <span>＋</span> Agregar Producto
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Agregar / Editar Producto -->
+    <div class="modal-overlay" id="modalProducto">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalTitle">Agregar Producto</h3>
+                <button class="modal-close" id="btnCerrarModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="formProducto">
+                    <input type="hidden" id="productoId">
+
+                    <div class="form-row">
+                        <div class="form-group-app">
+                            <label for="codigo">Código</label>
+                            <input type="text" id="codigo" placeholder="Ej: PROD-001" required>
+                        </div>
+                        <div class="form-group-app">
+                            <label for="nombre">Nombre</label>
+                            <input type="text" id="nombre" placeholder="Nombre del producto" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group-app">
+                        <label for="descripcion">Descripción</label>
+                        <textarea id="descripcion" rows="3" placeholder="Descripción del producto"></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group-app">
+                            <label for="categoriaSelect">Categoría</label>
+                            <select id="categoriaSelect" required>
+                                <option value="">Seleccionar categoría</option>
+                            </select>
+                        </div>
+                        <div class="form-group-app">
+                            <label for="capacidadMl">Capacidad (ml)</label>
+                            <input type="number" id="capacidadMl" placeholder="Ej: 500" min="0" step="1">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group-app">
+                            <label for="costoUnitario">Costo Unitario</label>
+                            <input type="number" id="costoUnitario" placeholder="0" min="0" step="1" required>
+                        </div>
+                        <div class="form-group-app">
+                            <label for="precioVenta">Precio de Venta</label>
+                            <input type="number" id="precioVenta" placeholder="0" min="0" step="1" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group-app">
+                            <label for="stockDisponible">Stock Disponible</label>
+                            <input type="number" id="stockDisponible" placeholder="0" min="0" step="1" required>
+                        </div>
+                        <div class="form-group-app">
+                            <label for="stockMinimo">Stock Mínimo</label>
+                            <input type="number" id="stockMinimo" placeholder="0" min="0" step="1" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group-app">
+                        <label for="unidadMedida">Unidad de Medida</label>
+                        <select id="unidadMedida" required>
+                            <option value="">Seleccionar unidad</option>
+                            <option value="unidades">Unidades</option>
+                            <option value="litros">Litros</option>
+                            <option value="galones">Galones</option>
+                            <option value="ml">Mililitros</option>
+                            <option value="kg">Kilogramos</option>
+                            <option value="gramos">Gramos</option>
+                            <option value="cajas">Cajas</option>
+                            <option value="paquetes">Paquetes</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-app btn-app-outline" id="btnCancelar">Cancelar</button>
+                <button class="btn-app btn-app-primary" id="btnGuardar">Guardar Producto</button>
+            </div>
+        </div>
+    </div>
+    <!-- Modal: Registrar Categoría -->
+<div class="modal-overlay" id="modalCategoria">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Registrar Categoría</h3>
+            <button class="modal-close" id="btnCerrarModalCategoria">&times;</button>
+        </div>
+
+        <div class="modal-body">
+            <form id="formCategoria">
+                <div class="form-group-app">
+                    <label for="nombreCategoria">Nombre de la categoría</label>
+                    <input type="text" id="nombreCategoria" placeholder="Ej: Envase PET" required>
+                </div>
+
+                <div class="form-group-app">
+                    <label for="descripcionCategoria">Descripción</label>
+                    <textarea id="descripcionCategoria" rows="3" placeholder="Descripción de la categoría"></textarea>
+                </div>
+            </form>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-app btn-app-outline" id="btnCancelarCategoria">Cancelar</button>
+            <button class="btn-app btn-app-primary" id="btnGuardarCategoria">Guardar Categoría</button>
+        </div>
+    </div>
+</div>
+
+    <!-- Scripts -->
+    <script src="../js/api.js"></script>
+    <script src="../js/utils.js"></script>
+    <script>
+        // ---- Estado de la página ----
+        let productos = [];
+        let categorias = [];
+        let editandoId = null;
+
+        // ---- Inicialización ----
+        checkSession();
+        renderSidebar('inventario');
+        cargarDatos();
+
+        // ---- Cargar productos y categorías ----
+        async function cargarDatos() {
+            try {
+                const [prods, cats] = await Promise.all([
+                    ApiClient.listarProductos(),
+                    ApiClient.request('/categorias-producto', { method: 'GET' })
+                ]);
+                productos = Array.isArray(prods) ? prods : [];
+                categorias = Array.isArray(cats) ? cats : [];
+                poblarFiltroCategorias();
+                poblarSelectCategoriaModal();
+                renderizarResumen();
+                renderizarTabla();
+            } catch (err) {
+                console.error('Error al cargar datos:', err);
+                showToast('Error al cargar datos del inventario', 'error');
+            }
+        }
+
+        // ---- Poblar dropdown de filtro de categorías ----
+       function poblarFiltroCategorias() {
+    const select = document.getElementById('filterCategoria');
+    select.innerHTML = '<option value="">Todas las categorías</option>';
+
+    categorias
+        .filter(cat => cat.activo !== false)
+        .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''))
+        .forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat.nombre;
+            opt.textContent = cat.nombre;
+            select.appendChild(opt);
+        });
+}
+
+        // ---- Poblar select de categoría en el modal ----
+        function poblarSelectCategoriaModal() {
+            const select = document.getElementById('categoriaSelect');
+            select.innerHTML = '<option value="">Seleccionar categoría</option>';
+            categorias.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.id;
+                opt.textContent = cat.nombre;
+                select.appendChild(opt);
+            });
+        }
+
+        // ---- Obtener categorías únicas de los productos ----
+        function obtenerCategoriasUnicas() {
+            const set = new Set();
+            productos.forEach(p => {
+                const catName = p.categoria ? p.categoria.nombre : null;
+                if (catName) set.add(catName);
+            });
+            return Array.from(set).sort();
+        }
+
+        // ---- Renderizar tarjetas de resumen ----
+        function renderizarResumen() {
+            const total = productos.length;
+            const stockBajo = productos.filter(p => (p.stockDisponible || 0) <= (p.stockMinimo || 0)).length;
+            const categoriasUnicas = obtenerCategoriasUnicas().length;
+
+            document.getElementById('totalProductos').textContent = total;
+            document.getElementById('stockBajo').textContent = stockBajo;
+            document.getElementById('totalCategorias').textContent = categoriasUnicas;
+        }
+
+        // ---- Obtener productos filtrados ----
+function obtenerProductosFiltrados() {
+    const busqueda = document.getElementById('searchInput').value.toLowerCase().trim();
+    const catFiltro = document.getElementById('filterCategoria').value;
+
+    return productos
+        .filter(p => {
+            const coincideBusqueda = !busqueda ||
+                (p.nombre || '').toLowerCase().includes(busqueda) ||
+                (p.codigo || '').toLowerCase().includes(busqueda);
+
+            const catNombre = p.categoria ? p.categoria.nombre : '';
+            const coincideCategoria = !catFiltro || catNombre === catFiltro;
+
+            return coincideBusqueda && coincideCategoria;
+        })
+        .sort((a, b) => {
+            const capacidadA = obtenerCapacidadOrden(a);
+            const capacidadB = obtenerCapacidadOrden(b);
+
+            if (capacidadA !== capacidadB) {
+                return capacidadA - capacidadB;
+            }
+
+            return (a.nombre || '').localeCompare(b.nombre || '');
+        });
+}
+function obtenerCapacidadOrden(producto) {
+    if (producto.capacidadMl !== null && producto.capacidadMl !== undefined) {
+        return Number(producto.capacidadMl);
+    }
+
+    const nombre = (producto.nombre || '').toLowerCase();
+
+    const coincidencia = nombre.match(/(\d+(?:[.,]\d+)?)\s*(ml|mililitros|l|lt|litro|litros|gal|galon|galón|galones)/i);
+
+    if (!coincidencia) {
+        return 999999;
+    }
+
+    const valor = Number(coincidencia[1].replace(',', '.'));
+    const unidad = coincidencia[2].toLowerCase();
+
+    if (unidad === 'ml' || unidad === 'mililitros') {
+        return valor;
+    }
+
+    if (unidad === 'l' || unidad === 'lt' || unidad === 'litro' || unidad === 'litros') {
+        return valor * 1000;
+    }
+
+    if (unidad === 'gal' || unidad === 'galon' || unidad === 'galón' || unidad === 'galones') {
+        return valor * 3785;
+    }
+
+    return 999999;
+}
+
+        // ---- Renderizar tabla de productos ----
+        function renderizarTabla() {
+            const tbody = document.getElementById('tbodyProductos');
+            const emptyState = document.getElementById('emptyState');
+            const table = document.getElementById('tablaProductos');
+            const filtrados = obtenerProductosFiltrados();
+
+            if (filtrados.length === 0) {
+                table.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                tbody.innerHTML = '';
+                return;
+            }
+
+            table.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+
+            tbody.innerHTML = filtrados.map(p => {
+                const stock = p.stockDisponible || 0;
+                const stockMin = p.stockMinimo || 0;
+                const esBajo = stock <= stockMin;
+                const catNombre = p.categoria ? p.categoria.nombre : '-';
+                const estadoBadge = esBajo
+                    ? '<span class="badge badge-danger">Stock Bajo</span>'
+                    : '<span class="badge badge-success">Disponible</span>';
+
+                return `
+                    <tr>
+                        <td><strong>${escapeHtml(p.codigo || '-')}</strong></td>
+                        <td>${escapeHtml(p.nombre || '-')}</td>
+                        <td>${escapeHtml(catNombre)}</td>
+                        <td>${formatCurrency(p.costoUnitario)}</td>
+                        <td>${formatCurrency(p.precioVenta)}</td>
+                        <td class="${esBajo ? 'text-danger fw-bold' : ''}">${stock}</td>
+                        <td>${stockMin}</td>
+                        <td>${estadoBadge}</td>
+                        <td>
+                            <button class="btn-app btn-app-outline btn-app-sm" onclick="editarProducto(${p.id})" title="Editar">✏️</button>
+                            <button class="btn-app btn-app-danger btn-app-sm" onclick="eliminarProducto(${p.id}, '${escapeHtml(p.nombre || '')}') " title="Eliminar">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // ---- Escape HTML para evitar XSS ----
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ---- Abrir modal para agregar ----
+        function abrirModalAgregar() {
+            editandoId = null;
+            document.getElementById('modalTitle').textContent = 'Agregar Producto';
+            document.getElementById('btnGuardar').textContent = 'Guardar Producto';
+            resetForm('formProducto');
+            document.getElementById('productoId').value = '';
+            openModal('modalProducto');
+        }
+
+        // ---- Abrir modal para editar ----
+        async function editarProducto(id) {
+            try {
+                const producto = await ApiClient.obtenerProducto(id);
+                editandoId = id;
+                document.getElementById('modalTitle').textContent = 'Editar Producto';
+                document.getElementById('btnGuardar').textContent = 'Actualizar Producto';
+                document.getElementById('productoId').value = id;
+                document.getElementById('codigo').value = producto.codigo || '';
+                document.getElementById('nombre').value = producto.nombre || '';
+                document.getElementById('descripcion').value = producto.descripcion || '';
+                document.getElementById('categoriaSelect').value = producto.categoria ? producto.categoria.id : '';
+                document.getElementById('capacidadMl').value = producto.capacidadMl || '';
+                document.getElementById('costoUnitario').value = producto.costoUnitario || '';
+                document.getElementById('precioVenta').value = producto.precioVenta || '';
+                document.getElementById('stockDisponible').value = producto.stockDisponible || '';
+                document.getElementById('stockMinimo').value = producto.stockMinimo || '';
+                document.getElementById('unidadMedida').value = producto.unidadMedida || '';
+                openModal('modalProducto');
+            } catch (err) {
+                console.error('Error al obtener producto:', err);
+                showToast('Error al cargar datos del producto', 'error');
+            }
+        }
+
+        // ---- Guardar producto (crear o actualizar) ----
+        async function guardarProducto() {
+            const form = document.getElementById('formProducto');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const categoriaId = document.getElementById('categoriaSelect').value;
+            
+            const datos = {
+                codigo: document.getElementById('codigo').value.trim(),
+                nombre: document.getElementById('nombre').value.trim(),
+                descripcion: document.getElementById('descripcion').value.trim(),
+                categoria: categoriaId ? { id: Number(categoriaId) } : null,
+                capacidadMl: document.getElementById('capacidadMl').value ? Number(document.getElementById('capacidadMl').value) : null,
+                costoUnitario: Number(document.getElementById('costoUnitario').value),
+                precioVenta: Number(document.getElementById('precioVenta').value),
+                stockDisponible: Number(document.getElementById('stockDisponible').value),
+                stockMinimo: Number(document.getElementById('stockMinimo').value),
+                unidadMedida: document.getElementById('unidadMedida').value
+            };
+
+            const btnGuardar = document.getElementById('btnGuardar');
+            btnGuardar.disabled = true;
+            btnGuardar.textContent = 'Guardando...';
+
+            try {
+                if (editandoId) {
+                    await ApiClient.actualizarProducto(editandoId, datos);
+                    showToast('Producto actualizado correctamente', 'success');
+                } else {
+                    await ApiClient.crearProducto(datos);
+                    showToast('Producto creado correctamente', 'success');
+                }
+                cerrarModal();
+                await cargarDatos();
+            } catch (err) {
+                console.error('Error al guardar producto:', err);
+                showToast(err.message || 'Error al guardar el producto', 'error');
+            } finally {
+                btnGuardar.disabled = false;
+                btnGuardar.textContent = editandoId ? 'Actualizar Producto' : 'Guardar Producto';
+            }
+        }
+
+        // ---- Eliminar producto ----
+        async function eliminarProducto(id, nombre) {
+            if (!confirm(`¿Estás seguro de eliminar el producto "${nombre}"? Esta acción no se puede deshacer.`)) {
+                return;
+            }
+
+            try {
+                await ApiClient.eliminarProducto(id);
+                showToast('Producto eliminado correctamente', 'success');
+                await cargarDatos();
+            } catch (err) {
+                console.error('Error al eliminar producto:', err);
+                showToast(err.message || 'Error al eliminar el producto', 'error');
+            }
+        }
+
+        // ---- Cerrar modal ----
+        function cerrarModal() {
+            closeModal('modalProducto');
+            editandoId = null;
+            resetForm('formProducto');
+        }
+function abrirModalCategoria() {
+    resetForm('formCategoria');
+    openModal('modalCategoria');
+}
+
+function cerrarModalCategoria() {
+    closeModal('modalCategoria');
+    resetForm('formCategoria');
+}
+
+async function guardarCategoria() {
+    const form = document.getElementById('formCategoria');
+
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    const datos = {
+        nombre: document.getElementById('nombreCategoria').value.trim(),
+        descripcion: document.getElementById('descripcionCategoria').value.trim(),
+        activo: true
+    };
+
+    const btnGuardar = document.getElementById('btnGuardarCategoria');
+    btnGuardar.disabled = true;
+    btnGuardar.textContent = 'Guardando...';
+
+    try {
+        await ApiClient.request('/categorias-producto', {
+            method: 'POST',
+            body: JSON.stringify(datos)
+        });
+
+        showToast('Categoría registrada correctamente', 'success');
+        cerrarModalCategoria();
+        await cargarDatos();
+    } catch (err) {
+        console.error('Error al guardar categoría:', err);
+        showToast(err.message || 'Error al registrar la categoría', 'error');
+    } finally {
+        btnGuardar.disabled = false;
+        btnGuardar.textContent = 'Guardar Categoría';
+    }
+}
+        // ---- Event Listeners ----
+        document.getElementById('btnAgregarProducto').addEventListener('click', abrirModalAgregar);
+        document.getElementById('btnEmptyAdd').addEventListener('click', abrirModalAgregar);
+        document.getElementById('btnRegistrarCategoria').addEventListener('click', abrirModalCategoria);
+        document.getElementById('btnCerrarModalCategoria').addEventListener('click', cerrarModalCategoria);
+        document.getElementById('btnCancelarCategoria').addEventListener('click', cerrarModalCategoria);
+        document.getElementById('btnGuardarCategoria').addEventListener('click', guardarCategoria);
+
+        document.getElementById('formCategoria').addEventListener('submit', (e) => {
+    e.preventDefault();
+    guardarCategoria();
+});
+
+document.getElementById('modalCategoria').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) cerrarModalCategoria();
+});
+        document.getElementById('btnCerrarModal').addEventListener('click', cerrarModal);
+        document.getElementById('btnCancelar').addEventListener('click', cerrarModal);
+        document.getElementById('modalProducto').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) cerrarModal();
+        });
+        document.getElementById('btnGuardar').addEventListener('click', guardarProducto);
+        document.getElementById('formProducto').addEventListener('submit', (e) => {
+            e.preventDefault();
+            guardarProducto();
+        });
+        document.getElementById('searchInput').addEventListener('input', renderizarTabla);
+        document.getElementById('filterCategoria').addEventListener('change', renderizarTabla);
+    </script>
+</body>
+</html>

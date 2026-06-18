@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMPLANORTE - Iniciar Sesión</title>
+    <link rel="icon" type="image/png" href="img/Logo.png">
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Estilos base y de login -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="login-body">
+
+    <div class="login-background">
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+    </div>
+<body class="login-page">
+
+    <div class="login-background">
+        <span class="bg-wave wave-1"></span>
+        <span class="bg-wave wave-2"></span>
+        <span class="bg-wave wave-3"></span>
+
+        <span class="bg-logo logo-1"></span>
+        <span class="bg-logo logo-2"></span>
+        <span class="bg-logo logo-3"></span>
+        <span class="bg-logo logo-4"></span>
+    </div>
+
+    <main class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+               <div class="logo-container">
+    <img src="img/Circulo.png" alt="Emplanorte" class="logo">
+</div>
+                <h1>EMPLANORTE</h1>
+                <p>Gestión de Inventario y Control Comercial</p>
+            </div>
+            
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="correo">Correo Electrónico</label>
+                    <div class="input-wrapper">
+                        <input type="email" id="correo" placeholder="ejemplo@emplanorte.com" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <div class="label-row">
+                        <label for="contrasena">Contraseña</label>
+                    </div>
+                    <div class="input-wrapper">
+                        <input type="password" id="contrasena" placeholder="••••••••••••" required>
+                    </div>
+                </div>
+
+                <div id="errorMessage" class="error-message hidden">
+                    Credenciales incorrectas. Intente nuevamente.
+                </div>
+                
+                <button type="submit" id="btnLogin" class="btn btn-primary btn-block">
+                    <span>Ingresar al Sistema</span>
+                    <div class="btn-shine"></div>
+                </button>
+            </form>
+            
+            <div class="login-footer">
+                <p>&copy; 2026 EMPLANORTE S.A.S. Todos los derechos reservados.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts de lógica base -->
+    <script src="js/api.js"></script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const correo = document.getElementById('correo').value;
+            const contrasena = document.getElementById('contrasena').value;
+            const errorMsg = document.getElementById('errorMessage');
+            const btn = document.getElementById('btnLogin');
+            
+            errorMsg.classList.add('hidden');
+            btn.disabled = true;
+            btn.classList.add('loading');
+
+            try {
+                const response = await ApiClient.login(correo, contrasena);
+                if (response.token) {
+                    // Guardar datos de sesión
+                    localStorage.setItem('emplanorte_session', JSON.stringify(response));
+                    // Redirigir al dashboard
+                    window.location.href = 'pages/dashboard.html';
+                } else {
+                    errorMsg.textContent = response.message || 'Credenciales incorrectas';
+                    errorMsg.classList.remove('hidden');
+                }
+            } catch (err) {
+                // Distinguir entre "backend caído" y un error devuelto por el backend.
+                // fetch() lanza TypeError ("Failed to fetch") solo cuando no hay conexión.
+                if (err instanceof TypeError) {
+                    errorMsg.textContent = 'No se pudo conectar con el servidor. '
+                        + 'Verifica que el backend esté encendido (http://localhost:8080).';
+                } else {
+                    // Mensaje real que envió el backend (credenciales, validación, etc.)
+                    errorMsg.textContent = err.message || 'Ocurrió un error al iniciar sesión.';
+                }
+                errorMsg.classList.remove('hidden');
+                console.error(err);
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('loading');
+            }
+        });
+    </script>
+</body>
+</html>

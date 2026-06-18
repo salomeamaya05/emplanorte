@@ -1,0 +1,68 @@
+================================================================================
+  REPORTE DE EJECUCION DE PRUEBAS — EMPLANORTE S.A.S.
+  Modulo : Dashboard y Estadisticas (DashboardService)
+  Fecha  : 2026-06-09
+  Hora   : 23:05:00 (America/Bogota)
+  Entorno: Windows 11 | Java 25.0.1 | Spring Boot 3.2.5
+  Ejecucion: suite completa (mvn test) en una sola corrida
+================================================================================
+
+RESUMEN
+-------
+  Total de pruebas ejecutadas : 12   (8 originales + 4 nuevas rol tester)
+  Pruebas exitosas            : 12
+  Fallos                      : 0
+  Errores                     : 0
+  Omitidas                    : 0
+  Tiempo total                : 0.073 segundos
+  Resultado                   : APROBADO
+
+================================================================================
+DETALLE POR CASO DE PRUEBA — respuesta del sistema
+================================================================================
+
+  Estado  Caso        Descripcion
+  ------- ----------- ------------------------------------------------------------
+  PASO    CP-33       Ventas y gastos -> totales y ganancia neta correctos
+  PASO    CP-33b      Ganancia neta = ganancias ventas - total gastos
+  PASO    CP-33c      Gastos > ganancias -> ganancia neta negativa (-150000)
+  PASO    CP-34       Dia sin operaciones -> ceros, sin error
+  PASO    CP-36       Rango de fechas -> consulta el periodo correcto (inicio/fin dia)
+  PASO    CP-37b      Fechas nulas -> usa la fecha de hoy
+  PASO    CP-38       Rango sin operaciones -> ceros, respuesta valida
+  PASO    Estructura  La respuesta siempre trae los 4 campos, nunca null
+  --- nuevas (rol tester) -------------------------------------------------------
+  PASO    NUEVA       Solo 'desde' nula -> hoy como inicio, respeta 'hasta'
+  PASO    NUEVA       Solo 'hasta' nula -> hoy como fin, respeta 'desde'
+  PASO    NUEVA       Ganancia neta usa la GANANCIA, no el total facturado
+  PASO    NUEVA       Totales con decimales -> sin perdida de precision (40000.15)
+
+================================================================================
+REQUISITOS FUNCIONALES CUBIERTOS
+================================================================================
+
+  RF11 - Resumen financiero diario     CP-33, CP-34, ceros, 4 campos    CUBIERTO
+  RF12 - Estadisticas por rango         CP-36, CP-38, fechas nulas       CUBIERTO
+
+================================================================================
+OBSERVACIONES
+================================================================================
+
+  - El servicio normaliza fechas nulas a "hoy" y consulta con los limites
+    exactos del dia (atStartOfDay .. atTime(MAX)).
+  - La ganancia neta se calcula sobre la GANANCIA de ventas (no sobre el total
+    facturado), lo cual es lo correcto financieramente.
+  - Las consultas de la BD usan COALESCE(SUM(...),0): nunca retornan null, por
+    lo que el resumen de un dia vacio devuelve ceros y no lanza excepcion.
+  - CP-35 (rendimiento con 100+ ventas en <3s) y CP-37 (rango invertido) son
+    pruebas de rendimiento / validacion de entrada de capa superior; aqui se
+    cubre la logica de calculo.
+
+================================================================================
+ARCHIVOS DEL PROYECTO
+================================================================================
+
+  Pruebas : src/backend/src/test/java/com/emplanorte/service/DashboardServiceTest.java
+  Servicio: src/backend/src/main/java/com/emplanorte/service/DashboardService.java
+
+================================================================================

@@ -1,0 +1,65 @@
+================================================================================
+  REPORTE DE EJECUCION DE PRUEBAS — EMPLANORTE S.A.S.
+  Modulo : Clientes (ClienteService)
+  Fecha  : 2026-06-09
+  Hora   : 23:05:00 (America/Bogota)
+  Entorno: Windows 11 | Java 25.0.1 | Spring Boot 3.2.5
+  Ejecucion: suite completa (mvn test) en una sola corrida
+================================================================================
+
+RESUMEN
+-------
+  Total de pruebas ejecutadas : 16   (10 originales + 6 nuevas rol tester)
+  Pruebas exitosas            : 13
+  Fallos                      : 3
+  Errores                     : 0
+  Omitidas                    : 0
+  Tiempo total                : 0.124 segundos
+  Resultado                   : NO APROBADO (3 validaciones del Plan no implementadas)
+
+================================================================================
+COMPORTAMIENTO ACTUAL VERIFICADO (PASO)
+================================================================================
+
+  RF13  Clientes
+    PASO  CP-39     Registrar con datos minimos -> activo y disponible
+    PASO  CP-39b    Campos opcionales no impiden el registro
+    PASO  CP-39c    Listar activos / vacio sin error
+    PASO  CP-39d    Actualizar existente -> campos guardados
+    PASO  CP-40     Desactivar -> activo=false, no se borra fisicamente
+    PASO  -         Obtener por ID: activo retorna, inactivo no retorna
+    PASO  -         Actualizar / desactivar inexistente -> "Cliente no encontrado"
+    PASO  NUEVA     guardar fuerza activo=true aunque llegue activo=false
+    PASO  NUEVA     mensaje EXACTO "Cliente no encontrado" (actualizar/desactivar)
+
+================================================================================
+VALIDACIONES DEL PLAN NO IMPLEMENTADAS (pruebas en ROJO — gap documentado)
+================================================================================
+
+  guardar() solo fuerza activo=true; no valida nombre ni telefono. Lo que el
+  Plan exige y hoy NO ocurre:
+
+  Estado  Caso     Entrada                    Esperado              Obtenido
+  ------- -------- -------------------------- --------------------- ----------
+  FALLA   CP-40    nombre vacio ""            rechazo validacion    se guarda
+  FALLA   CP-40b   nombre null                rechazo validacion    se guarda
+  FALLA   CP-41    telefono "abc123"          rechazo "formato..."  se guarda
+
+================================================================================
+OBSERVACIONES Y CORRECCION PROPUESTA (no aplicada)
+================================================================================
+
+  En ClienteService.guardar() (o con Bean Validation):
+    - nombre obligatorio y no en blanco (CP-40).
+    - telefono con formato valido (p.ej. solo digitos, 10 caracteres / +57) (CP-41).
+  Definir en el diseño el formato de telefono esperado. Una vez implementado,
+  las 3 pruebas pasaran a VERDE sin tocar los asserts.
+
+================================================================================
+ARCHIVOS DEL PROYECTO
+================================================================================
+
+  Pruebas : src/backend/src/test/java/com/emplanorte/service/ClienteServiceTest.java
+  Servicio: src/backend/src/main/java/com/emplanorte/service/ClienteService.java
+
+================================================================================

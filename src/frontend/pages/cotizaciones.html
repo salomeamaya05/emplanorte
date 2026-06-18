@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMPLANORTE - Cotizaciones</title>
+    <link rel="icon" type="image/png" href="../img/Logo.png">
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Estilos -->
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="../css/app.css">
+    <style>
+        /* Line-items table inside modal */
+        .line-items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+        }
+        .line-items-table thead th {
+            padding: 8px 10px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-light);
+            background: #fafbfc;
+            border-bottom: 1px solid var(--card-border);
+        }
+        .line-items-table tbody td {
+            padding: 8px 10px;
+            font-size: 13px;
+            border-bottom: 1px solid #f0f2f5;
+            vertical-align: middle;
+        }
+        .line-items-table select,
+        .line-items-table input {
+            width: 100%;
+            padding: 7px 8px;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-family: var(--font-sans);
+            color: var(--text-dark);
+            background: #fff;
+            outline: none;
+            transition: var(--transition);
+        }
+        .line-items-table select:focus,
+        .line-items-table input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(49, 130, 206, 0.15);
+        }
+        .line-items-table .col-producto { width: 38%; }
+        .line-items-table .col-cantidad { width: 14%; }
+        .line-items-table .col-precio   { width: 18%; }
+        .line-items-table .col-subtotal { width: 18%; }
+        .line-items-table .col-accion   { width: 12%; text-align: center; }
+        .btn-remove-line {
+            background: none;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            color: var(--danger);
+            cursor: pointer;
+            padding: 4px 8px;
+            font-size: 14px;
+            transition: var(--transition);
+        }
+        .btn-remove-line:hover {
+            background: var(--danger-light);
+            border-color: var(--danger);
+        }
+        .totals-section {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
+            padding: 12px 0 0;
+            border-top: 1px solid var(--card-border);
+        }
+        .totals-section .total-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+        }
+        .totals-section .total-row label {
+            font-weight: 600;
+            color: var(--text-medium);
+            min-width: 100px;
+            text-align: right;
+        }
+        .totals-section .total-row span {
+            font-weight: 700;
+            color: var(--text-dark);
+            min-width: 120px;
+            text-align: right;
+        }
+        .totals-section .total-row input {
+            width: 120px;
+            padding: 7px 8px;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-family: var(--font-sans);
+            color: var(--text-dark);
+            text-align: right;
+            outline: none;
+            transition: var(--transition);
+        }
+        .totals-section .total-row input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(49, 130, 206, 0.15);
+        }
+        .totals-section .total-final {
+            font-size: 16px;
+        }
+        .totals-section .total-final span {
+            color: var(--primary);
+            font-size: 16px;
+        }
+        .modal-lg .modal {
+            max-width: 720px;
+        }
+        .btn-add-line {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 14px;
+            background: var(--primary-light);
+            color: var(--primary);
+            border: 1px dashed var(--primary);
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: var(--font-sans);
+        }
+        .btn-add-line:hover {
+            background: var(--primary);
+            color: #fff;
+        }
+        .data-table .btn-convertir {
+            white-space: nowrap;
+        }
+        /* Pasarela de pago simulada */
+        .pago-badge {
+            background: #fff7e6;
+            color: #8a6d00;
+            border: 1px solid #ffe2a8;
+            border-radius: var(--radius-sm);
+            padding: 8px 10px;
+            font-size: 11px;
+            text-align: center;
+            margin-bottom: 14px;
+        }
+        .pago-monto {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 12px 14px;
+            background: #f7faff;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            margin-bottom: 16px;
+        }
+        .pago-monto span {
+            font-size: 12px;
+            color: var(--text-medium);
+        }
+        .pago-monto strong {
+            font-size: 20px;
+            color: var(--primary);
+        }
+        /* Resumen del plan de crédito */
+        .credito-resumen {
+            margin-top: 8px;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+        }
+        .credito-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 9px 12px;
+            font-size: 13px;
+            border-bottom: 1px solid #f0f2f5;
+        }
+        .credito-row:last-child { border-bottom: none; }
+        .credito-row span { color: var(--text-medium); }
+        .credito-row strong { color: var(--text-dark); }
+        .credito-total { background: #f7faff; }
+        .credito-total strong {
+            color: var(--primary);
+            font-size: 15px;
+        }
+    </style>
+</head>
+<body class="app-body">
+    <div class="app-layout">
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Page Header -->
+            <div class="page-header">
+                <h1 class="page-title">Cotizaciones</h1>
+                <div class="page-actions">
+                    <button class="btn-app btn-app-primary" onclick="abrirModalNueva()">
+                        <span>＋</span> Nueva Cotización
+                    </button>
+                </div>
+            </div>
+
+            <!-- Page Body -->
+            <div class="page-body">
+                <!-- Summary Cards -->
+                <div class="summary-cards">
+                    <div class="summary-card">
+                        <div class="card-icon icon-primary">📄</div>
+                        <div class="card-info">
+                            <div class="card-label">Total Cotizaciones</div>
+                            <div class="card-value" id="totalCotizaciones">0</div>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="card-icon icon-warning">⏳</div>
+                        <div class="card-info">
+                            <div class="card-label">Pendientes</div>
+                            <div class="card-value" id="totalPendientes">0</div>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="card-icon icon-success">✅</div>
+                        <div class="card-info">
+                            <div class="card-label">Convertidas</div>
+                            <div class="card-value" id="totalConvertidas">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Table -->
+                <div class="data-section">
+                    <table class="data-table" id="tablaCotizaciones">
+                        <thead>
+                            <tr>
+                                <th>Nº Cotización</th>
+                                <th>Fecha</th>
+                                <th>Cliente</th>
+                                <th class="text-right">Subtotal</th>
+                                <th class="text-right">Descuento</th>
+                                <th class="text-right">Total</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bodyCotizaciones">
+                            <!-- Filas dinámicas -->
+                        </tbody>
+                    </table>
+                    <!-- Empty state -->
+                    <div class="empty-state hidden" id="emptyState">
+                        <div class="empty-icon">📄</div>
+                        <div class="empty-title">No hay cotizaciones registradas</div>
+                        <div class="empty-desc">Crea tu primera cotización usando el botón "Nueva Cotización".</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         MODAL: Nueva Cotización
+         ============================================================ -->
+    <div class="modal-overlay modal-lg" id="modalNuevaCotizacion">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Nueva Cotización</h3>
+                <button class="modal-close" onclick="cerrarModalNueva()">&times;</button>
+            </div>
+            <form id="formCotizacion" onsubmit="guardarCotizacion(event)">
+                <div class="modal-body">
+                    <!-- Cliente y Notas -->
+                    <div class="form-row">
+                        <div class="form-group-app">
+                            <label for="selectCliente">Cliente *</label>
+                            <select id="selectCliente" required>
+                                <option value="">Seleccionar cliente...</option>
+                            </select>
+                        </div>
+                        <div class="form-group-app">
+                            <label for="inputNotas">Notas</label>
+                            <input type="text" id="inputNotas" placeholder="Observaciones opcionales">
+                        </div>
+                    </div>
+
+                    <!-- Line Items -->
+                    <label style="font-size:12px;font-weight:600;color:var(--text-medium);margin-bottom:8px;display:block;">
+                        Productos *
+                    </label>
+                    <table class="line-items-table">
+                        <thead>
+                            <tr>
+                                <th class="col-producto">Producto</th>
+                                <th class="col-cantidad">Cantidad</th>
+                                <th class="col-precio">Precio Unit.</th>
+                                <th class="col-subtotal">Subtotal</th>
+                                <th class="col-accion"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="lineItemsBody">
+                            <!-- Filas dinámicas de productos -->
+                        </tbody>
+                    </table>
+                    <button type="button" class="btn-add-line" onclick="agregarLineaProducto()">
+                        ＋ Agregar producto
+                    </button>
+
+                    <!-- Totals -->
+                    <div class="totals-section">
+                        <div class="total-row">
+                            <label>Subtotal:</label>
+                            <span id="displaySubtotal">$ 0</span>
+                        </div>
+                        <div class="total-row">
+                            <label>Descuento (%):</label>
+                            <input type="number" id="inputDescuento" value="0" min="0" max="100" step="0.01" oninput="recalcularTotales()">
+                        </div>
+                        <div class="total-row total-final">
+                            <label>Total:</label>
+                            <span id="displayTotal">$ 0</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-app btn-app-outline" onclick="cerrarModalNueva()">Cancelar</button>
+                    <button type="submit" class="btn-app btn-app-primary" id="btnGuardarCotizacion">Guardar Cotización</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         MODAL: Convertir a Venta
+         ============================================================ -->
+    <div class="modal-overlay" id="modalConvertir">
+        <div class="modal" style="max-width:420px;">
+            <div class="modal-header">
+                <h3>Convertir a Venta</h3>
+                <button class="modal-close" onclick="cerrarModalConvertir()">&times;</button>
+            </div>
+            <form id="formConvertir" onsubmit="confirmarConversion(event)">
+                <div class="modal-body">
+                    <p style="font-size:13px;color:var(--text-medium);margin-bottom:16px;">
+                        Selecciona el método de pago para convertir la cotización
+                        <strong id="labelCotizacionId"></strong> en una venta.
+                    </p>
+                    <div class="form-group-app">
+                        <label for="selectMetodoPago">Método de Pago *</label>
+                        <select id="selectMetodoPago" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="efectivo">Efectivo</option>
+                            <option value="transferencia">Transferencia</option>
+                            <option value="tarjeta">Tarjeta</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-app btn-app-outline" onclick="cerrarModalConvertir()">Cancelar</button>
+                    <button type="submit" class="btn-app btn-app-success" id="btnConfirmarConversion">Convertir a Venta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         MODAL: Pasarela de Pago (Simulada)
+         ============================================================ -->
+    <div class="modal-overlay" id="modalPasarela">
+        <div class="modal" style="max-width:440px;">
+            <div class="modal-header">
+                <h3>💳 Pasarela de Pago</h3>
+                <button class="modal-close" onclick="cerrarPasarela()">&times;</button>
+            </div>
+            <form id="formPasarela" onsubmit="procesarPago(event)" autocomplete="off">
+                <div class="modal-body">
+                    <div class="pago-monto">
+                        <span>Total de la compra</span>
+                        <strong id="pagoMonto">$ 0</strong>
+                    </div>
+                    <div class="form-group-app">
+                        <label for="tipoTarjeta">Tipo de tarjeta</label>
+                        <select id="tipoTarjeta" onchange="onTipoTarjetaChange()">
+                            <option value="debito">Tarjeta de débito</option>
+                            <option value="credito">Tarjeta de crédito</option>
+                        </select>
+                    </div>
+                    <div class="form-group-app">
+                        <label for="cardNumber">Número de tarjeta</label>
+                        <input type="text" id="cardNumber" inputmode="numeric"
+                               placeholder="0000 0000 0000 0000" maxlength="19"
+                               oninput="formatearTarjeta(this)">
+                    </div>
+                    <div class="form-group-app">
+                        <label for="cardName">Titular de la tarjeta</label>
+                        <input type="text" id="cardName" placeholder="Como aparece en la tarjeta">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group-app">
+                            <label for="cardExpiry">Vencimiento</label>
+                            <input type="text" id="cardExpiry" inputmode="numeric"
+                                   placeholder="MM/AA" maxlength="5" oninput="formatearVencimiento(this)">
+                        </div>
+                        <div class="form-group-app">
+                            <label for="cardCvv">CVV</label>
+                            <input type="text" id="cardCvv" inputmode="numeric" placeholder="123" maxlength="4">
+                        </div>
+                    </div>
+
+                    <!-- Solo visible para tarjeta de crédito: cuotas e intereses -->
+                    <div id="seccionCredito" class="hidden">
+                        <div class="form-group-app">
+                            <label for="creditoCuotas">Número de cuotas</label>
+                            <select id="creditoCuotas" onchange="recalcularCredito()">
+                                <option value="1">1 mes</option>
+                                <option value="2">2 meses</option>
+                                <option value="3">3 meses</option>
+                                <option value="6">6 meses</option>
+                                <option value="12" selected>12 meses</option>
+                                <option value="24">24 meses</option>
+                                <option value="36">36 meses</option>
+                            </select>
+                        </div>
+                        <div class="credito-resumen">
+                            <div class="credito-row">
+                                <span>Tasa de interés</span><strong id="creditoTasa">2% mensual</strong>
+                            </div>
+                            <div class="credito-row">
+                                <span>Valor de cada cuota</span><strong id="creditoValorCuota">$ 0</strong>
+                            </div>
+                            <div class="credito-row">
+                                <span>Total intereses</span><strong id="creditoIntereses">$ 0</strong>
+                            </div>
+                            <div class="credito-row credito-total">
+                                <span>Total a pagar</span><strong id="creditoTotal">$ 0</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="pagoError" class="hidden"
+                         style="margin-top:8px;padding:8px 10px;border-radius:var(--radius-sm);
+                                background:var(--danger-light);color:var(--danger);
+                                border:1px solid var(--danger);font-size:12px;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-app btn-app-outline" onclick="cerrarPasarela()">Cancelar</button>
+                    <button type="submit" class="btn-app btn-app-success" id="btnPagar">Pagar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/api.js"></script>
+    <script src="../js/utils.js"></script>
+    <script>
+        // ---- Estado global ----
+        let cotizaciones = [];
+        let clientes = [];
+        let productos = [];
+        let cotizacionIdConvertir = null;
+        let cotizacionIdEditando = null;
+        let lineaCounter = 0;
+        let montoConvertir = 0;
+
+        // ---- Inicialización ----
+        checkSession();
+        renderSidebar('cotizaciones');
+        cargarDatos();
+
+        async function cargarDatos() {
+            try {
+                const [cotizResp, clientesResp, productosResp] = await Promise.all([
+                    ApiClient.listarCotizaciones(),
+                    ApiClient.listarClientes(),
+                    ApiClient.listarProductos()
+                ]);
+                cotizaciones = Array.isArray(cotizResp) ? cotizResp : [];
+                clientes = Array.isArray(clientesResp) ? clientesResp : [];
+                productos = Array.isArray(productosResp) ? productosResp : [];
+
+                renderResumen();
+                renderTabla();
+                poblarSelectClientes();
+            } catch (err) {
+                console.error('Error cargando datos:', err);
+                showToast('Error al cargar datos del servidor', 'error');
+            }
+        }
+
+        // ---- Resumen (summary cards) ----
+        function renderResumen() {
+            document.getElementById('totalCotizaciones').textContent = cotizaciones.length;
+            document.getElementById('totalPendientes').textContent =
+                cotizaciones.filter(c => c.estado === 'pendiente').length;
+            document.getElementById('totalConvertidas').textContent =
+                cotizaciones.filter(c => c.estado === 'convertida').length;
+        }
+
+        // ---- Tabla de cotizaciones ----
+        function renderTabla() {
+            const tbody = document.getElementById('bodyCotizaciones');
+            const empty = document.getElementById('emptyState');
+
+            if (cotizaciones.length === 0) {
+                tbody.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+
+            empty.classList.add('hidden');
+
+            tbody.innerHTML = cotizaciones.map(c => {
+                const clienteNombre = c.cliente ? c.cliente.nombre : 'Sin cliente';
+                const badgeClass = mapBadge(c.estado);
+                const estadoLabel = capitalizar(c.estado);
+                const puedeConvertir = c.estado === 'pendiente' || c.estado === 'aceptada';
+
+                const subtotal = Number(c.subtotal) || 0;
+                const descuento = Number(c.descuento) || 0;
+                const total = Number(c.total) || (subtotal - descuento);
+                const numCotizacion = c.numeroCotizacion || c.id || '-';
+
+                return `
+                    <tr>
+                        <td><strong>${escapeHtml(String(numCotizacion))}</strong></td>
+                        <td>${formatDate(c.fechaCotizacion)}</td>
+                        <td>${escapeHtml(clienteNombre)}</td>
+                        <td class="text-right">${formatCurrency(subtotal)}</td>
+                        <td class="text-right">${formatCurrency(descuento)}</td>
+                        <td class="text-right fw-bold">${formatCurrency(total)}</td>
+                        <td><span class="badge ${badgeClass}">${estadoLabel}</span></td>
+                        <td>
+                            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                                ${puedeConvertir
+    ? `<button class="btn-app btn-app-outline btn-app-sm" onclick="abrirModalEditar(${c.id})">
+           Editar
+       </button>
+       <button class="btn-app btn-app-success btn-app-sm btn-convertir" onclick="abrirModalConvertir(${c.id})">
+           Convertir a Venta
+       </button>`
+    : ''}
+                                ${c.estado !== 'convertida'
+                                    ? `<button class="btn-app btn-app-danger btn-app-sm" onclick="confirmarEliminar(${c.id}, '${escapeHtml(String(numCotizacion))}')">
+                                           Eliminar
+                                       </button>`
+                                    : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function mapBadge(estado) {
+            const map = {
+                pendiente: 'badge-warning',
+                aceptada: 'badge-primary',
+                rechazada: 'badge-danger',
+                convertida: 'badge-success'
+            };
+            return map[estado] || 'badge-primary';
+        }
+
+        function capitalizar(str) {
+            if (!str) return '-';
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        function obtenerNombreCliente(idCliente) {
+            const cliente = clientes.find(c => c.id === idCliente);
+            return cliente ? cliente.nombre : 'Cliente #' + idCliente;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ---- Poblar select clientes ----
+        function poblarSelectClientes() {
+            const select = document.getElementById('selectCliente');
+            select.innerHTML = '<option value="">Seleccionar cliente...</option>';
+            clientes.forEach(c => {
+                const id = c.id;
+                select.innerHTML += `<option value="${id}">${c.nombre}</option>`;
+            });
+        }
+
+        // ---- MODAL: Nueva Cotización ----
+        function abrirModalNueva() {
+    cotizacionIdEditando = null;
+    document.querySelector('#modalNuevaCotizacion .modal-header h3').textContent = 'Nueva Cotización';
+    document.getElementById('btnGuardarCotizacion').textContent = 'Guardar Cotización';
+
+    resetFormCotizacion();
+    agregarLineaProducto();
+    openModal('modalNuevaCotizacion');
+}
+async function abrirModalEditar(id) {
+    const cotizacion = cotizaciones.find(c => c.id === id);
+
+    if (!cotizacion) {
+        showToast('No se encontró la cotización seleccionada', 'error');
+        return;
+    }
+
+    if (cotizacion.estado === 'convertida') {
+        showToast('No se puede editar una cotización convertida a venta', 'warning');
+        return;
+    }
+
+    document.querySelector('#modalNuevaCotizacion .modal-header h3').textContent = 'Editar Cotización';
+    document.getElementById('btnGuardarCotizacion').textContent = 'Actualizar Cotización';
+
+    resetFormCotizacion();
+
+    cotizacionIdEditando = id;
+
+    document.getElementById('selectCliente').value = cotizacion.cliente ? cotizacion.cliente.id : '';
+    document.getElementById('inputNotas').value = cotizacion.notas || '';
+    document.getElementById('inputDescuento').value = Number(cotizacion.descuento || 0);
+
+    try {
+        const detalles = await ApiClient.listarDetalleCotizacion(id);
+
+        if (Array.isArray(detalles) && detalles.length > 0) {
+            detalles.forEach(detalle => {
+                agregarLineaProducto();
+
+                const row = document.getElementById(`line-${lineaCounter}`);
+                row.querySelector('.line-producto').value = detalle.producto ? detalle.producto.id : '';
+                row.querySelector('.line-cantidad').value = detalle.cantidad || 1;
+                row.querySelector('.line-precio').value = Number(detalle.precioUnitario || 0);
+
+                onCantidadChange(row.id);
+            });
+        } else {
+            agregarLineaProducto();
+        }
+
+        recalcularTotales();
+        openModal('modalNuevaCotizacion');
+    } catch (err) {
+        console.error('Error cargando detalle de cotización:', err);
+        showToast('Error al cargar los productos de la cotización', 'error');
+    }
+}
+
+        function cerrarModalNueva() {
+            cotizacionIdEditando = null;
+            closeModal('modalNuevaCotizacion');
+        }
+
+        function resetFormCotizacion() {
+            document.getElementById('formCotizacion').reset();
+            document.getElementById('lineItemsBody').innerHTML = '';
+            document.getElementById('inputDescuento').value = '0';
+            document.getElementById('displaySubtotal').textContent = '$ 0';
+            document.getElementById('displayTotal').textContent = '$ 0';
+            lineaCounter = 0;
+        }
+
+        // ---- Líneas de producto ----
+        function agregarLineaProducto() {
+            lineaCounter++;
+            const rowId = `line-${lineaCounter}`;
+            const optionsHtml = productos.map(p => {
+                const id = p.id;
+                return `<option value="${id}" data-precio="${p.precioVenta || 0}" data-stock="${p.stockDisponible || 0}">${p.nombre}</option>`;
+            }).join('');
+
+            const row = document.createElement('tr');
+            row.id = rowId;
+            row.innerHTML = `
+                <td>
+                    <select class="line-producto" onchange="onProductoChange('${rowId}')" required>
+                        <option value="">Seleccionar...</option>
+                        ${optionsHtml}
+                    </select>
+                    <div class="line-stock-hint" style="font-size:11px;margin-top:4px;color:var(--text-light);"></div>
+                </td>
+                <td>
+                    <input type="number" class="line-cantidad" value="1" min="1" step="1"
+                           oninput="onCantidadChange('${rowId}')" required>
+                </td>
+                <td>
+                   <input type="number" class="line-precio" value="0" min="0" step="0.01"
+       oninput="onCantidadChange('${rowId}')" required>
+                </td>
+                <td class="text-right line-subtotal-cell">$ 0</td>
+                <td class="text-center">
+                    <button type="button" class="btn-remove-line" onclick="eliminarLinea('${rowId}')" title="Eliminar línea">✕</button>
+                </td>
+            `;
+            document.getElementById('lineItemsBody').appendChild(row);
+        }
+
+        function onProductoChange(rowId) {
+            const row = document.getElementById(rowId);
+            const select = row.querySelector('.line-producto');
+            const precioInput = row.querySelector('.line-precio');
+            const option = select.options[select.selectedIndex];
+
+            const precio = option && option.dataset.precio ? parseFloat(option.dataset.precio) : 0;
+            precioInput.value = precio;
+            onCantidadChange(rowId);
+        }
+
+        function onCantidadChange(rowId) {
+            const row = document.getElementById(rowId);
+            const cantidad = parseFloat(row.querySelector('.line-cantidad').value) || 0;
+            const precio = parseFloat(row.querySelector('.line-precio').value) || 0;
+            const subtotal = cantidad * precio;
+            row.querySelector('.line-subtotal-cell').textContent = formatCurrency(subtotal);
+            actualizarStockHint(rowId);
+            recalcularTotales();
+        }
+
+        // Muestra el stock disponible de la línea. NO bloquea: la cotización es una
+        // propuesta y el stock solo se valida al convertir a venta. Solo avisa.
+        function actualizarStockHint(rowId) {
+            const row = document.getElementById(rowId);
+            const select = row.querySelector('.line-producto');
+            const hint = row.querySelector('.line-stock-hint');
+            const option = select.options[select.selectedIndex];
+
+            if (!option || !option.value) {
+                hint.textContent = '';
+                return;
+            }
+
+            const stock = parseInt(option.dataset.stock) || 0;
+            const cantidad = parseInt(row.querySelector('.line-cantidad').value) || 0;
+
+            if (cantidad > stock) {
+                hint.textContent = `⚠ Stock disponible: ${stock} — supera el inventario (se validará al convertir a venta)`;
+                hint.style.color = 'var(--danger)';
+            } else {
+                hint.textContent = `Stock disponible: ${stock}`;
+                hint.style.color = 'var(--text-light)';
+            }
+        }
+
+        function eliminarLinea(rowId) {
+            const tbody = document.getElementById('lineItemsBody');
+            const row = document.getElementById(rowId);
+            if (row) {
+                row.remove();
+                recalcularTotales();
+            }
+            // Asegurar al menos una línea
+            if (tbody.children.length === 0) {
+                agregarLineaProducto();
+            }
+        }
+
+        function recalcularTotales() {
+            const rows = document.getElementById('lineItemsBody').querySelectorAll('tr');
+            let subtotal = 0;
+            rows.forEach(row => {
+                const cantidad = parseFloat(row.querySelector('.line-cantidad').value) || 0;
+                const precio = parseFloat(row.querySelector('.line-precio').value) || 0;
+                subtotal += cantidad * precio;
+            });
+
+            const descuento = parseFloat(document.getElementById('inputDescuento').value) || 0;
+            const total = subtotal - (subtotal * descuento / 100);
+
+            document.getElementById('displaySubtotal').textContent = formatCurrency(subtotal);
+            document.getElementById('displayTotal').textContent = formatCurrency(total);
+        }
+
+        // ---- Guardar cotización ----
+        async function guardarCotizacion(e) {
+            e.preventDefault();
+
+            const idCliente = parseInt(document.getElementById('selectCliente').value);
+            const notas = document.getElementById('inputNotas').value.trim();
+            const descuento = parseFloat(document.getElementById('inputDescuento').value) || 0;
+
+            // Recolectar líneas
+            const rows = document.getElementById('lineItemsBody').querySelectorAll('tr');
+            const detalles = [];
+            const excedenStock = [];
+            let valid = true;
+
+            rows.forEach(row => {
+                const productoSelect = row.querySelector('.line-producto');
+                const idProducto = parseInt(productoSelect.value);
+                const cantidad = parseInt(row.querySelector('.line-cantidad').value) || 0;
+                const precioUnitario = parseFloat(row.querySelector('.line-precio').value) || 0;
+
+                if (!idProducto || cantidad <= 0) {
+                    valid = false;
+                    return;
+                }
+
+                // Aviso informativo (no bloquea): la cantidad supera el stock actual.
+                const option = productoSelect.options[productoSelect.selectedIndex];
+                const stock = parseInt(option && option.dataset.stock) || 0;
+                if (cantidad > stock) {
+                    excedenStock.push(`${option.textContent} (pide ${cantidad}, hay ${stock})`);
+                }
+
+                detalles.push({ idProducto, cantidad, precioUnitario });
+            });
+
+            if (!valid || detalles.length === 0) {
+                showToast('Agrega al menos un producto válido con cantidad.', 'warning');
+                return;
+            }
+
+            // Mensajito a tener en cuenta: se guarda igual, el stock se valida al convertir a venta.
+            if (excedenStock.length > 0) {
+                showToast('Nota: ' + excedenStock.length + ' producto(s) superan el stock actual. '
+                    + 'La cotización se guardará; el stock se verificará al convertir a venta.', 'warning');
+            }
+
+            const user = getUser();
+            const data = {
+                idCliente,
+                idUsuario: user ? (user.id || user.idUsuario) : null,
+                descuento,
+                notas,
+                detalles
+            };
+
+            const btn = document.getElementById('btnGuardarCotizacion');
+            btn.disabled = true;
+            btn.textContent = 'Guardando...';
+
+            try {
+                if (cotizacionIdEditando) {
+                    // Estamos editando: actualizar la cotización existente (NO crear otra).
+                    await ApiClient.actualizarCotizacion(cotizacionIdEditando, data);
+                    showToast('Cotización actualizada exitosamente', 'success');
+                } else {
+                    await ApiClient.crearCotizacion(data);
+                    showToast('Cotización creada exitosamente', 'success');
+                }
+                cerrarModalNueva();
+                await cargarDatos();
+            } catch (err) {
+                console.error('Error al guardar cotización:', err);
+                showToast(err.message || 'Error al guardar la cotización', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = cotizacionIdEditando ? 'Actualizar Cotización' : 'Guardar Cotización';
+            }
+        }
+
+        // ---- Eliminar cotización ----
+        function confirmarEliminar(id, numero) {
+            if (!confirm(`¿Eliminar la cotización ${numero}? Esta acción no se puede deshacer.`)) return;
+            eliminarCotizacion(id);
+        }
+
+        async function eliminarCotizacion(id) {
+            try {
+                await ApiClient.eliminarCotizacion(id);
+                showToast('Cotización eliminada', 'success');
+                await cargarDatos();
+            } catch (err) {
+                console.error('Error al eliminar cotización:', err);
+                showToast(err.message || 'Error al eliminar la cotización', 'error');
+            }
+        }
+
+        // ---- MODAL: Convertir a Venta ----
+        function abrirModalConvertir(id) {
+            cotizacionIdConvertir = id;
+            const cot = cotizaciones.find(c => c.id === id);
+            montoConvertir = cot ? (Number(cot.total) || 0) : 0;
+            document.getElementById('labelCotizacionId').textContent = `#${id}`;
+            document.getElementById('selectMetodoPago').value = '';
+            openModal('modalConvertir');
+        }
+
+        function cerrarModalConvertir() {
+            closeModal('modalConvertir');
+            cotizacionIdConvertir = null;
+        }
+
+        async function confirmarConversion(e) {
+            e.preventDefault();
+
+            const metodoPago = document.getElementById('selectMetodoPago').value;
+            if (!metodoPago) {
+                showToast('Selecciona un método de pago', 'warning');
+                return;
+            }
+
+            // Pago con tarjeta → pasar por la pasarela simulada (débito o crédito) antes de
+            // registrar la venta. Se conserva cotizacionIdConvertir y montoConvertir.
+            if (metodoPago === 'tarjeta') {
+                closeModal('modalConvertir');
+                abrirPasarela();
+                return;
+            }
+
+            const btn = document.getElementById('btnConfirmarConversion');
+            btn.disabled = true;
+            btn.textContent = 'Convirtiendo...';
+
+            try {
+                await ejecutarConversion(metodoPago);
+                showToast('Cotización convertida a venta exitosamente', 'success');
+                cerrarModalConvertir();
+                await cargarDatos();
+            } catch (err) {
+                console.error('Error al convertir cotización:', err);
+                showToast(err.message || 'Error al convertir la cotización', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Convertir a Venta';
+            }
+        }
+
+        // Lógica compartida: registra la venta a partir de la cotización en el backend.
+        // referenciaPago solo se envía cuando el pago pasó por la pasarela (tarjeta).
+        async function ejecutarConversion(metodoPago, referenciaPago = null) {
+            return ApiClient.convertirCotizacionAVenta(cotizacionIdConvertir, metodoPago, referenciaPago);
+        }
+
+        // ============================================================
+        //  PASARELA DE PAGO (SIMULADA) — no realiza ningún cobro real
+        // ============================================================
+        function abrirPasarela() {
+            document.getElementById('formPasarela').reset();
+            document.getElementById('pagoError').classList.add('hidden');
+            document.getElementById('pagoMonto').textContent = formatCurrency(montoConvertir);
+            document.getElementById('tipoTarjeta').value = 'debito';
+            onTipoTarjetaChange();
+            openModal('modalPasarela');
+        }
+
+        function cerrarPasarela() {
+            closeModal('modalPasarela');
+        }
+
+        // Muestra u oculta la sección de cuotas según el tipo de tarjeta elegido.
+        function onTipoTarjetaChange() {
+            const esCredito = document.getElementById('tipoTarjeta').value === 'credito';
+            document.getElementById('seccionCredito').classList.toggle('hidden', !esCredito);
+            document.getElementById('btnPagar').textContent = esCredito ? 'Pagar a crédito' : 'Pagar';
+            if (esCredito) {
+                document.getElementById('creditoCuotas').value = '12';
+                recalcularCredito();
+            }
+        }
+
+        // Formatea el número en grupos de 4 dígitos mientras se escribe.
+        function formatearTarjeta(input) {
+            const v = input.value.replace(/\D/g, '').slice(0, 16);
+            input.value = v.replace(/(.{4})/g, '$1 ').trim();
+        }
+
+        // Formatea el vencimiento como MM/AA.
+        function formatearVencimiento(input) {
+            let v = input.value.replace(/\D/g, '').slice(0, 4);
+            if (v.length >= 3) v = v.slice(0, 2) + '/' + v.slice(2);
+            input.value = v;
+        }
+
+        // Algoritmo de Luhn: validación estándar real del número de tarjeta.
+        function luhnValido(numero) {
+            let suma = 0;
+            let alt = false;
+            for (let i = numero.length - 1; i >= 0; i--) {
+                let n = parseInt(numero[i], 10);
+                if (alt) { n *= 2; if (n > 9) n -= 9; }
+                suma += n;
+                alt = !alt;
+            }
+            return numero.length >= 13 && suma % 10 === 0;
+        }
+
+        function mostrarErrorPago(msg) {
+            const el = document.getElementById('pagoError');
+            el.textContent = msg;
+            el.classList.remove('hidden');
+        }
+
+        async function procesarPago(e) {
+            e.preventDefault();
+
+            const esCredito = document.getElementById('tipoTarjeta').value === 'credito';
+            const labelBtn = esCredito ? 'Pagar a crédito' : 'Pagar';
+            const numero = document.getElementById('cardNumber').value.replace(/\s/g, '');
+            const titular = document.getElementById('cardName').value.trim();
+            const expiry = document.getElementById('cardExpiry').value.trim();
+            const cvv = document.getElementById('cardCvv').value.trim();
+            document.getElementById('pagoError').classList.add('hidden');
+
+            // ---- Validaciones de formato (iguales para débito y crédito) ----
+            if (!titular) return mostrarErrorPago('Ingresa el nombre del titular.');
+            if (!luhnValido(numero)) return mostrarErrorPago('Número de tarjeta inválido.');
+            if (!/^\d{2}\/\d{2}$/.test(expiry)) return mostrarErrorPago('Vencimiento inválido (usa MM/AA).');
+            const [mm, aa] = expiry.split('/').map(Number);
+            if (mm < 1 || mm > 12) return mostrarErrorPago('Mes de vencimiento inválido.');
+            const ahora = new Date();
+            const anioTarjeta = 2000 + aa;
+            const vencida = anioTarjeta < ahora.getFullYear()
+                || (anioTarjeta === ahora.getFullYear() && mm < (ahora.getMonth() + 1));
+            if (vencida) return mostrarErrorPago('La tarjeta está vencida.');
+            if (!/^\d{3,4}$/.test(cvv)) return mostrarErrorPago('CVV inválido.');
+
+            // ---- Simular procesamiento de la pasarela ----
+            const btn = document.getElementById('btnPagar');
+            btn.disabled = true;
+            btn.textContent = 'Procesando pago...';
+            await new Promise(r => setTimeout(r, 1500)); // latencia simulada
+
+            // Tarjeta de prueba que SIEMPRE se rechaza (estilo sandbox).
+            if (numero === '4000000000000002') {
+                btn.disabled = false;
+                btn.textContent = labelBtn;
+                return mostrarErrorPago('Pago rechazado por el banco emisor (fondos insuficientes).');
+            }
+
+            // ---- Aprobado: armar método, referencia y detalle según el tipo de tarjeta ----
+            const metodoPago = esCredito ? 'credito' : 'tarjeta';
+            const referencia = (esCredito ? 'CRE-' : 'TRX-') + Date.now().toString(36).toUpperCase()
+                + '-' + Math.floor(Math.random() * 9000 + 1000);
+
+            let detallePago = referencia;
+            let mensajeExito = 'Pago aprobado ✓ ' + referencia + '. Cotización convertida a venta.';
+            if (esCredito) {
+                const n = parseInt(document.getElementById('creditoCuotas').value) || 1;
+                const cuota = calcularValorCuota(montoConvertir, n, TASA_CREDITO_MENSUAL);
+                detallePago = referencia + ' | ' + n + ' cuotas de ' + formatCurrency(cuota)
+                    + ' (tasa ' + (TASA_CREDITO_MENSUAL * 100).toFixed(0) + '% mensual)';
+                mensajeExito = 'Crédito aprobado ✓ ' + n + ' cuotas de ' + formatCurrency(cuota)
+                    + '. ' + referencia;
+            }
+
+            try {
+                await ejecutarConversion(metodoPago, detallePago);
+                cotizacionIdConvertir = null;
+                cerrarPasarela();
+                showToast(mensajeExito, 'success');
+                await cargarDatos();
+            } catch (err) {
+                console.error('Error al registrar la venta tras el pago:', err);
+                mostrarErrorPago(err.message || 'El pago se aprobó pero falló el registro de la venta.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = labelBtn;
+            }
+        }
+
+        // ============================================================
+        //  CRÉDITO (financiación a cuotas) — cálculo simulado
+        // ============================================================
+        const TASA_CREDITO_MENSUAL = 0.02; // 2% mensual (simulado)
+
+        // Amortización francesa: cuota fija = P·i / (1 − (1+i)^−n)
+        function calcularValorCuota(monto, n, i) {
+            if (i === 0) return monto / n;
+            return monto * i / (1 - Math.pow(1 + i, -n));
+        }
+
+        // Recalcula el plan de cuotas en vivo (sección de tarjeta de crédito).
+        function recalcularCredito() {
+            const n = parseInt(document.getElementById('creditoCuotas').value) || 1;
+            const cuota = calcularValorCuota(montoConvertir, n, TASA_CREDITO_MENSUAL);
+            const total = cuota * n;
+            const intereses = total - montoConvertir;
+
+            document.getElementById('creditoTasa').textContent =
+                (TASA_CREDITO_MENSUAL * 100).toFixed(0) + '% mensual';
+            document.getElementById('creditoValorCuota').textContent =
+                formatCurrency(cuota) + ' × ' + n;
+            document.getElementById('creditoIntereses').textContent = formatCurrency(intereses);
+            document.getElementById('creditoTotal').textContent = formatCurrency(total);
+        }
+    </script>
+</body>
+</html>

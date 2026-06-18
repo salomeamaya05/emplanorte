@@ -1,0 +1,139 @@
+================================================================================
+  REPORTE DE EJECUCION DE PRUEBAS — EMPLANORTE S.A.S.
+  Modulo : Autenticacion HTTP (AuthController) — Prueba de Integracion
+  Fecha  : 2026-06-09
+  Hora   : 22:57:07 (America/Bogota)
+  Entorno: Windows 11 | Java 25.0.1 | Spring Boot 3.2.5
+  Ejecucion: mvn test -Dtest=AuthControllerTest (@WebMvcTest + MockMvc)
+================================================================================
+
+RESUMEN
+-------
+  Total de pruebas ejecutadas : 26
+  Pruebas exitosas            : 17
+  Fallos                      : 9
+  Errores                     : 0
+  Omitidas                    : 0
+  Tiempo total                : 3.242 segundos (levanta contexto web de Spring)
+  Resultado                   : NO APROBADO (9 validaciones esperadas no implementadas)
+
+  Nota: los 9 fallos son INTENCIONALES. Codifican el comportamiento que el Plan
+  y el usuario esperan (mensajes ante valores invalidos y reglas de contraseña)
+  pero que el codigo todavia NO implementa. Quedan en ROJO como evidencia
+  documentada del gap, igual que el caso CP-44 de Cotizaciones.
+
+================================================================================
+DETALLE POR CASO DE PRUEBA
+================================================================================
+
+  ── CP-45  Login exitoso (detallado) ─────────────────────────────────────────
+  #   Caso           Descripcion                                                Estado   Tiempo
+  --- -------------- ---------------------------------------------------------- -------- -------
+  1   CP-45a         Login valido -> 200 con TODOS los campos                    PASO     0.005 s
+                     (mensaje, id, nombre, correo, rol, token=dummy-jwt-token-for-1)
+  2   CP-45b         La respuesta NUNCA expone el hash de la contraseña          PASO     0.006 s
+  3   CP-45c         Delega en AuthService.login con credenciales exactas        PASO     0.010 s
+  4   CP-45d         Campos extra en el JSON se ignoran (no escala privilegios)  PASO     0.038 s
+
+  ── CP-46  Credenciales invalidas / campos faltantes ─────────────────────────
+  5   CP-46a         Contraseña incorrecta -> 401 con mensaje EXACTO generico    PASO     0.031 s
+  6   CP-46b         Usuario inexistente -> mismo mensaje que clave mala         PASO     0.049 s
+                     (no revela si el correo existe)
+  7   CP-46c         Usuario inactivo -> 401, no 200                             PASO     0.005 s
+  8   CP-46d         Sin correo -> 400 "El correo y la contraseña son obligat."  PASO     0.018 s
+  9   CP-46e         Sin contraseña -> 400 con mensaje exacto                     PASO     0.007 s
+  10  CP-46f         Body vacio {} -> 400                                        PASO     0.177 s
+  11  CP-46g         correo y contrasena null explicitos -> 400                  PASO     0.012 s
+
+  ── CP-48  Seguridad: inyeccion SQL (capa HTTP) ──────────────────────────────
+  12  CP-48a         "admin' OR '1'='1" -> 401 sin error 500, no ejecuta SQL     PASO     0.007 s
+  13  CP-48b         "'; DROP TABLE usuarios;--" en clave -> 401, nunca 200      PASO     0.006 s
+
+  ── Robustez del endpoint HTTP ───────────────────────────────────────────────
+  14  ROB-1          JSON malformado -> 400                                      PASO     0.006 s
+  15  ROB-2          Peticion sin body -> 400                                    PASO     0.007 s
+  16  ROB-3          Content-Type text/plain -> 415 Unsupported Media Type       PASO     0.007 s
+  17  ROB-4          GET sobre /api/auth/login -> 405 Method Not Allowed         PASO     0.012 s
+
+================================================================================
+VALIDACIONES ESPERADAS NO IMPLEMENTADAS (pruebas en ROJO — gap documentado)
+================================================================================
+
+  Estado actual: el AuthController solo valida que correo y contraseña no sean
+  NULL (AuthController.java:26). NO valida cadenas vacias, espacios, formato de
+  correo ni reglas de contraseña. Por eso todo lo "invalido pero no null" llega
+  al servicio y termina en 401, cuando lo correcto seria 400 con mensaje claro.
+
+  #   Caso del Plan  Descripcion                                          Esperado  Obtenido  Estado
+  --- -------------- ---------------------------------------------------- --------- --------- ------
+  18  CP-VAL-1       correo vacio ""                                       400       401       FALLA
+  19  CP-VAL-2       contraseña vacia "" (al menos un caracter)            400       401       FALLA
+  20  CP-VAL-3       correo solo espacios "   " (trim)                     400       401       FALLA
+  21  CP-VAL-4       contraseña solo espacios "   "                        400       401       FALLA
+  22  CP-VAL-5       correo sin formato valido "noesuncorreo"             400       401       FALLA
+  23  CP-VAL-6       correo con espacios internos "a b@c.com"             400       401       FALLA
+  24  CP-VAL-7       contraseña sin ninguna mayuscula "admin2024*"        400       401       FALLA
+  25  CP-VAL-8       contraseña de un solo caracter minuscula "a"         400       401       FALLA
+  26  CP-47          5 intentos fallidos -> bloqueo temporal               429       401       FALLA
+
+  Mensaje de fallo tipico (JUnit/MockMvc):
+    java.lang.AssertionError: Status expected:<400> but was:<401>
+    (para CP-47:  Status expected:<429> but was:<401>)
+
+================================================================================
+REQUISITOS CUBIERTOS
+================================================================================
+
+  RNF05 - Control de acceso (capa HTTP)
+    OK    Login exitoso retorna 200 con datos del usuario y token (sin hash)
+    OK    Login fallido retorna 401 con mensaje generico (sin fuga de info)
+    OK    Campos null faltantes retornan 400
+    OK    Inyeccion SQL tratada como credencial normal (401, sin 500)
+    OK    Robustez: 400 / 415 / 405 segun corresponda
+    GAP   Validacion de valores vacios/blancos -> deberia ser 400 (hoy 401)
+    GAP   Validacion de formato de correo -> deberia ser 400 (hoy 401)
+    GAP   Regla de contraseña (>=1 caracter y >=1 mayuscula) -> 400 (hoy 401)
+    GAP   CP-47 Bloqueo tras intentos fallidos -> 429 (hoy 401, sin bloqueo)
+
+================================================================================
+OBSERVACIONES Y CORRECCIONES PROPUESTAS (no aplicadas en esta ejecucion)
+================================================================================
+
+  Para pasar las 9 pruebas en ROJO se deberia, en AuthController.login (o en un
+  DTO de request con Bean Validation):
+
+  1) Rechazar con 400 cuando correo o contraseña esten vacios o en blanco
+     (usar isBlank() ademas de null), con mensaje indicando el campo faltante.
+
+  2) Validar formato de correo (regex / @Email) antes de consultar el servicio.
+
+  3) Validar la contraseña recibida: longitud minima >= 1 y al menos una letra
+     mayuscula, devolviendo 400 con un mensaje claro.
+     ADVERTENCIA DE SEGURIDAD: aplicar reglas de complejidad EN EL LOGIN no es
+     una buena practica (no se debe revelar la politica al atacante ni rechazar
+     por formato en vez de por credenciales). El lugar correcto de estas reglas
+     es el REGISTRO / creacion de usuario, que hoy no existe en el sistema.
+     Se dejan aqui porque fueron solicitadas explicitamente para esta entrega.
+
+  4) CP-47: implementar conteo de intentos fallidos por correo/IP y bloqueo
+     temporal (HTTP 429) tras 5 fallos, conforme al Plan.
+
+  - Una vez implementadas, estas pruebas pasaran a VERDE sin tocar los asserts.
+  - Mientras tanto se abre el issue correspondiente en Jira (criterio de la
+    seccion 7 del Plan: toda prueba que falla se documenta y se reincorpora al
+    ciclo una vez corregida).
+
+================================================================================
+ARCHIVOS DEL PROYECTO
+================================================================================
+
+  Codigo fuente de las pruebas:
+  src/backend/src/test/java/com/emplanorte/controller/AuthControllerTest.java
+
+  Controlador bajo prueba:
+  src/backend/src/main/java/com/emplanorte/controller/AuthController.java
+
+  Servicio relacionado:
+  src/backend/src/main/java/com/emplanorte/service/AuthService.java
+
+================================================================================

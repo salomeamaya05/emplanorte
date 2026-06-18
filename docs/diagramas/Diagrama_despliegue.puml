@@ -1,0 +1,68 @@
+@startuml DiagramaDespliegue_Emplanorte
+
+skinparam {
+  BackgroundColor #FAFAFA
+  NodeBackgroundColor #E8F4FD
+  NodeBorderColor #2E86AB
+  NodeFontColor #1A1A2E
+  NodeFontSize 13
+  NodeFontStyle bold
+  ArtifactBackgroundColor #FFFFFF
+  ArtifactBorderColor #5C8DBF
+  ArtifactFontSize 11
+  ArtifactFontColor #2C3E50
+  ComponentBackgroundColor #EAF7EA
+  ComponentBorderColor #27AE60
+  ComponentFontSize 11
+  ComponentFontColor #1E4D2B
+  ArrowColor #2E86AB
+  ArrowFontSize 10
+  ArrowFontColor #555555
+  LinetypeOrthogonal true
+  Shadowing false
+  RoundCorner 12
+  Padding 6
+}
+
+node "Dispositivo Cliente" <<Dispositivo>> {
+  artifact "Navegador Web\n(Chrome / Firefox / Safari)" as browser
+}
+
+node "Servidor de Aplicaciones" <<execution environment>> {
+  artifact "Backend Java\nSpring Boot (.jar)" as backend
+  artifact "API REST\nControladores HTTP" as api
+  artifact "Frontend\nReact / HTML / CSS" as frontend
+
+  package "Módulos del Sistema" {
+    component "[Dashboard]"         as dashboard
+    component "[Ventas]"            as ventas
+    component "[Inventario]"        as inventario
+    component "[Clientes]"          as clientes
+    component "[Cotizaciones]"      as cotizaciones
+    component "[Gastos]"            as gastos
+    component "[Estadísticas]"      as estadisticas
+    component "[Reportes]"          as reportes
+    component "[Autenticación]"     as auth
+  }
+
+  backend --> dashboard
+  backend --> ventas
+  backend --> inventario
+  backend --> clientes
+  backend --> cotizaciones
+  backend --> gastos
+  backend --> estadisticas
+  backend --> reportes
+  backend --> auth
+}
+
+node "Servidor de Base de Datos" <<Dispositivo>> {
+  artifact "PostgreSQL\nBase de datos relacional" as db
+}
+
+browser  --> frontend  : HTTPS
+frontend --> api       : HTTP interno
+api      --> backend   : invoca
+backend  --> db        : JDBC / TCP:5432
+
+@enduml

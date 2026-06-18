@@ -1,0 +1,1093 @@
+/* ============================================================
+   ESTILOS GLOBALES - EMPLANORTE S.A.S.
+   Diseño Premium: Dark Mode/Glassmorphism y Tipografía Moderna
+   ============================================================ */
+
+:root {
+    /* Paleta de colores */
+    --bg-dark: #071810;       /* Verde muy oscuro / casi negro */
+    --bg-card: rgba(10, 30, 18, 0.80); /* Verde oscuro translúcido */
+    --primary: #3a7e56;       /* Verde EMPLANORTE */
+    --primary-hover: #2d6244;
+    --accent: #6ee7a0;        /* Verde claro complementario */
+    --text-primary: #f8fafc;  /* Blanco suave */
+    --text-secondary: #94a3b8;/* Gris slate */
+    --border-color: rgba(255, 255, 255, 0.08);
+    --border-focus: #4ade80;
+    
+    /* Fuentes y bordes */
+    --font-sans: 'Inter', sans-serif;
+    --radius-lg: 16px;
+    --radius-md: 10px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Reset base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-sans);
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* ============================================================
+   ESTILOS DE INICIAR SESIÓN (LOGIN)
+   ============================================================ */
+
+.login-body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+/* Esferas decorativas de fondo para Glassmorphism */
+.login-background {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.circle {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.15;
+}
+
+.circle-1 {
+    width: 500px;
+    height: 500px;
+    background: var(--primary);
+    top: -15%;
+    left: -15%;
+    opacity: 0.25;
+}
+
+.circle-2 {
+    width: 600px;
+    height: 600px;
+    background: var(--accent);
+    bottom: -20%;
+    right: -15%;
+    opacity: 0.12;
+}
+
+/* Contenedor principal del Login */
+.login-container {
+    position: relative;
+    width: 100%;
+    max-width: 440px;
+    padding: 20px;
+    z-index: 10;
+}
+
+/* Tarjeta de Login (Glassmorphism) */
+.login-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 40px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    animation: fadeIn 0.6s ease-out;
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.login-logo-wrapper {
+    width: 88px;
+    height: 88px;
+    background: #ffffff;
+    border-radius: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto 18px;
+    padding: 10px;
+    box-shadow: 0 6px 20px rgba(58, 126, 86, 0.45);
+}
+
+.login-logo-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.login-header h1 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 5px;
+    background: linear-gradient(135deg, #ffffff 50%, var(--text-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.login-header p {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+/* Inputs y Formularios */
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.input-wrapper {
+    position: relative;
+}
+
+.input-wrapper input {
+    width: 100%;
+    padding: 14px 16px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: var(--font-sans);
+    outline: none;
+    transition: var(--transition);
+}
+
+.input-wrapper input:focus {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px rgba(58, 126, 86, 0.25);
+    background: rgba(7, 24, 16, 0.85);
+}
+
+.input-wrapper input::placeholder {
+    color: rgba(148, 163, 184, 0.4);
+}
+
+/* Botones Premium */
+.btn {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    padding: 14px 24px;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-weight: 600;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+    color: var(--text-primary);
+    box-shadow: 0 4px 15px rgba(58, 126, 86, 0.35);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(58, 126, 86, 0.50);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-block {
+    width: 100%;
+}
+
+/* Brillo en Hover para Botones */
+.btn-shine {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.3) 100%
+    );
+    transform: skewX(-25deg);
+    transition: 0.75s;
+}
+
+.btn:hover .btn-shine {
+    left: 125%;
+}
+
+/* Mensajes de error */
+.error-message {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #f87171;
+    font-size: 13px;
+    padding: 12px;
+    border-radius: var(--radius-md);
+    text-align: center;
+    animation: shake 0.4s ease-in-out;
+}
+
+.hidden {
+    display: none;
+}
+
+/* Footer del Login */
+.login-footer {
+    margin-top: 30px;
+    text-align: center;
+}
+
+.login-footer p {
+    font-size: 11px;
+    color: rgba(148, 163, 184, 0.5);
+}
+
+/* ============================================================
+   ANIMACIONES
+   ============================================================ */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+}
+
+/* Efecto de cargando en botón */
+.btn.loading span {
+    visibility: hidden;
+    opacity: 0;
+}
+
+.btn.loading::after {
+    content: "";
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: auto;
+    border: 3px solid transparent;
+    border-top-color: var(--text-primary);
+    border-radius: 50%;
+    animation: spin 1s ease infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+/* ============================================================
+   LOGIN MEJORADO - EMPLANORTE
+   Autor: Salomé A.
+   Fecha: 08/06/2026
+   ============================================================ */
+
+:root {
+    --login-green-dark: #061f15;
+    --login-green: #1f6b43;
+    --login-green-light: #3d8b5a;
+    --login-blue: #1d4ed8;
+    --login-white: #ffffff;
+    --login-muted: #a9b8c7;
+    --login-border: rgba(255, 255, 255, 0.14);
+    --login-input: rgba(15, 29, 42, 0.88);
+}
+
+/* Fondo general del login */
+.login-page,
+body.login-page {
+    min-height: 100vh;
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background:
+        radial-gradient(circle at top left, rgba(255,255,255,0.10), transparent 25%),
+        radial-gradient(circle at bottom right, rgba(208, 250, 208, 0.33), transparent 22%),
+        linear-gradient(135deg, #3a7f5c 0%, #4f9872 30%, #78b39a 58%, #dbe5eb 100%);
+    overflow: hidden;
+    position: relative;
+}
+
+/* Partículas / luces decorativas */
+.login-page::before,
+body.login-page::before {
+    content: "";
+    position: fixed;
+    inset: -120px;
+    background:
+        radial-gradient(circle, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+    background-size: 46px 46px;
+    opacity: 0.22;
+    animation: moveParticles 18s linear infinite;
+    pointer-events: none;
+}
+
+.login-page::after,
+body.login-page::after {
+    content: "";
+    position: fixed;
+    width: 520px;
+    height: 520px;
+    right: -180px;
+    bottom: -180px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(61, 139, 90, 0.30), transparent 68%);
+    filter: blur(8px);
+    animation: floatLight 7s ease-in-out infinite alternate;
+    pointer-events: none;
+}
+
+@keyframes moveParticles {
+    from {
+        transform: translate(0, 0);
+    }
+    to {
+        transform: translate(46px, 46px);
+    }
+}
+
+@keyframes floatLight {
+    from {
+        transform: translateY(0) scale(1);
+    }
+    to {
+        transform: translateY(-28px) scale(1.08);
+    }
+}
+
+/* Contenedor principal */
+.login-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    position: relative;
+    z-index: 2;
+}
+
+/* Tarjeta del login */
+.login-card {
+    width: 100%;
+    max-width: 430px;
+    padding: 42px 40px 34px;
+    border-radius: 28px;
+    background: rgba(10, 45, 30, 0.30);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow:
+        0 24px 50px rgba(25, 55, 42, 0.20),
+        inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    position: relative;
+    overflow: hidden;
+    animation: cardIn 0.75s ease both;
+}
+
+/* Brillo superior de la tarjeta */
+.login-card::before {
+    content: "";
+    position: absolute;
+    top: -120px;
+    left: -80px;
+    width: 240px;
+    height: 240px;
+    background: radial-gradient(circle, rgba(61, 139, 90, 0.26), transparent 70%);
+    pointer-events: none;
+}
+
+.login-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 26px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.08), transparent 38%);
+    pointer-events: none;
+}
+
+@keyframes loginCardIn {
+    from {
+        opacity: 0;
+        transform: translateY(24px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Logo sin fondo */
+.logo-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 18px;
+    position: relative;
+    z-index: 2;
+}
+
+.logo {
+    width: 82px;
+    height: 82px;
+    object-fit: contain;
+    background: transparent !important;
+    border-radius: 50%;
+    padding: 0 !important;
+    box-shadow: none !important;
+    filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.28));
+    animation: logoFloat 2.8s ease-in-out infinite;
+}
+
+@keyframes logoFloat {
+    0%, 100% {
+        transform: translateY(0) scale(1);
+    }
+    50% {
+        transform: translateY(-7px) scale(1.04);
+    }
+}
+
+/* Título */
+.login-title,
+.login-card h1 {
+    margin: 0;
+    text-align: center;
+    color: var(--login-white);
+    font-size: 2rem;
+    font-weight: 900;
+    letter-spacing: -0.8px;
+    position: relative;
+    z-index: 2;
+    text-shadow: 0 3px 12px rgba(0, 0, 0, 0.22);
+}
+
+.login-subtitle,
+.login-card p {
+    margin: 8px 0 30px;
+    text-align: center;
+    color: var(--login-muted);
+    font-size: 0.95rem;
+    font-weight: 500;
+    position: relative;
+    z-index: 2;
+}
+
+/* Formulario */
+.login-form,
+#loginForm {
+    position: relative;
+    z-index: 2;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #b8c8d8;
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+
+.form-group input {
+    width: 100%;
+    height: 54px;
+    padding: 0 16px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.20);
+    background: rgba(11, 34, 54, 0.38);
+    color: #ffffff;
+    font-size: 0.96rem;
+    font-weight: 600;
+    outline: none;
+    box-sizing: border-box;
+    transition: all 0.25s ease;
+}
+
+.form-group input::placeholder {
+    color: rgba(169, 184, 199, 0.55);
+}
+
+.form-group input:focus {
+    border-color: rgba(61, 139, 90, 0.95);
+    box-shadow:
+        0 0 0 4px rgba(61, 139, 90, 0.18),
+        0 10px 22px rgba(0, 0, 0, 0.14);
+    transform: translateY(-1px);
+}
+
+/* Mensajes de error */
+.error-message,
+#loginError {
+    display: none;
+    margin: 2px 0 18px;
+    padding: 13px 14px;
+    border-radius: 14px;
+    background: rgba(239, 68, 68, 0.13);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #ff8b8b;
+    font-size: 0.88rem;
+    font-weight: 700;
+    text-align: center;
+    animation: shakeError 0.35s ease;
+}
+
+.error-message.show,
+#loginError.show {
+    display: block;
+}
+
+@keyframes shakeError {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    25% {
+        transform: translateX(-5px);
+    }
+    75% {
+        transform: translateX(5px);
+    }
+}
+
+/* Botón principal */
+.login-button,
+.btn-login,
+button[type="submit"] {
+    width: 100%;
+    height: 56px;
+    border: none;
+    border-radius: 15px;
+    background: linear-gradient(135deg, #3d8b5a 0%, #2f7a50 45%, #256f48 100%);
+    color: #ffffff;
+    font-size: 0.98rem;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow:
+        0 14px 28px rgba(47, 122, 80, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.login-button::before,
+.btn-login::before,
+button[type="submit"]::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -120%;
+    width: 80%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+    transition: left 0.55s ease;
+}
+
+.login-button:hover,
+.btn-login:hover,
+button[type="submit"]:hover {
+    transform: translateY(-2px);
+    box-shadow:
+        0 18px 36px rgba(47, 122, 80, 0.38),
+        inset 0 1px 0 rgba(255, 255, 255, 0.20);
+}
+
+.login-button:hover::before,
+.btn-login:hover::before,
+button[type="submit"]:hover::before {
+    left: 120%;
+}
+
+.login-button:active,
+.btn-login:active,
+button[type="submit"]:active {
+    transform: translateY(0);
+}
+
+/* Footer */
+.login-footer {
+    margin-top: 28px;
+    color: rgba(169, 184, 199, 0.70);
+    font-size: 0.76rem;
+    text-align: center;
+    line-height: 1.4;
+    position: relative;
+    z-index: 2;
+}
+
+/* Responsive */
+@media (max-width: 520px) {
+    .login-card {
+        padding: 34px 24px 28px;
+        border-radius: 22px;
+    }
+
+    .logo {
+        width: 72px;
+        height: 72px;
+    }
+
+    .login-title,
+    .login-card h1 {
+        font-size: 1.75rem;
+    }
+}
+/* ============================================================
+   FONDO ANIMADO LOGIN - EMPLANORTE
+   Más claro, con olas y logos al fondo
+   ============================================================ */
+
+body.login-page {
+    min-height: 100vh;
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #255840 0%, #2f7a50 28%, #3f8f67 52%, #dfe7ec 100%);
+    overflow: hidden;
+    position: relative;
+}
+
+/* Capa general del fondo */
+.login-background {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Olas suaves */
+.bg-wave {
+    position: absolute;
+    left: -15%;
+    width: 130%;
+    border-radius: 45%;
+    filter: blur(6px);
+    opacity: 0.45;
+    background: radial-gradient(ellipse at center,
+        rgba(255, 255, 255, 0.18) 0%,
+        rgba(255, 255, 255, 0.08) 35%,
+        transparent 72%);
+}
+
+.wave-1 {
+    height: 300px;
+    bottom: -120px;
+    animation: waveMove1 12s ease-in-out infinite alternate;
+}
+
+.wave-2 {
+    height: 240px;
+    bottom: 80px;
+    animation: waveMove2 14s ease-in-out infinite alternate;
+    opacity: 0.24;
+}
+
+.wave-3 {
+    height: 180px;
+    top: 40px;
+    animation: waveMove3 16s ease-in-out infinite alternate;
+    opacity: 0.14;
+}
+
+@keyframes waveMove1 {
+    from {
+        transform: translateX(-40px) translateY(0px) scaleX(1);
+    }
+    to {
+        transform: translateX(40px) translateY(-16px) scaleX(1.04);
+    }
+}
+
+@keyframes waveMove2 {
+    from {
+        transform: translateX(30px) translateY(0px) scaleX(1);
+    }
+    to {
+        transform: translateX(-30px) translateY(18px) scaleX(1.03);
+    }
+}
+
+@keyframes waveMove3 {
+    from {
+        transform: translateX(-20px) translateY(0px);
+    }
+    to {
+        transform: translateX(24px) translateY(10px);
+    }
+}
+
+/* Logos de fondo como marca de agua */
+.bg-logo {
+    position: absolute;
+    background: url("../img/Circulo.png") center/contain no-repeat;
+    opacity: 0.07;
+    filter: grayscale(1) brightness(2.8) contrast(0.80);
+    transform-origin: center;
+    will-change: transform, opacity;
+}
+
+/* círculo superior izquierdo */
+.logo-1 {
+    width: 220px;
+    height: 220px;
+    top: 8%;
+    left: 6%;
+    animation: floatLogo1 16s ease-in-out infinite alternate;
+}
+
+/* círculo superior derecho */
+.logo-2 {
+    width: 160px;
+    height: 160px;
+    right: 10%;
+    top: 14%;
+    animation: floatLogo2 18s ease-in-out infinite alternate;
+}
+
+/* círculo inferior izquierdo */
+.logo-3 {
+    width: 260px;
+    height: 260px;
+    left: 10%;
+    bottom: 6%;
+    animation: floatLogo3 20s ease-in-out infinite alternate;
+}
+
+/* círculo inferior derecho */
+.logo-4 {
+    width: 180px;
+    height: 180px;
+    right: 12%;
+    bottom: 10%;
+    animation: floatLogo4 17s ease-in-out infinite alternate;
+}
+
+@keyframes floatLogo1 {
+    0% {
+        transform: translate(0, 0) rotate(0deg) scale(1);
+        opacity: 0.05;
+    }
+    50% {
+        transform: translate(18px, -12px) rotate(4deg) scale(1.03);
+        opacity: 0.08;
+    }
+    100% {
+        transform: translate(-8px, 14px) rotate(-3deg) scale(0.98);
+        opacity: 0.06;
+    }
+}
+
+@keyframes floatLogo2 {
+    0% {
+        transform: translate(0, 0) rotate(0deg) scale(1);
+        opacity: 0.04;
+    }
+    50% {
+        transform: translate(-16px, 10px) rotate(-5deg) scale(1.04);
+        opacity: 0.07;
+    }
+    100% {
+        transform: translate(10px, -12px) rotate(3deg) scale(0.98);
+        opacity: 0.05;
+    }
+}
+
+@keyframes floatLogo3 {
+    0% {
+        transform: translate(0, 0) rotate(0deg) scale(1);
+        opacity: 0.05;
+    }
+    50% {
+        transform: translate(22px, -18px) rotate(5deg) scale(1.02);
+        opacity: 0.08;
+    }
+    100% {
+        transform: translate(-10px, 8px) rotate(-4deg) scale(0.97);
+        opacity: 0.06;
+    }
+}
+
+@keyframes floatLogo4 {
+    0% {
+        transform: translate(0, 0) rotate(0deg) scale(1);
+        opacity: 0.04;
+    }
+    50% {
+        transform: translate(-14px, -14px) rotate(4deg) scale(1.03);
+        opacity: 0.07;
+    }
+    100% {
+        transform: translate(12px, 10px) rotate(-3deg) scale(0.98);
+        opacity: 0.05;
+    }
+}
+/* Contenedor del login */
+.login-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    position: relative;
+    z-index: 2;
+}
+
+/* Tarjeta del login */
+.login-card {
+    width: 100%;
+    max-width: 430px;
+    padding: 42px 40px 34px;
+    border-radius: 28px;
+    background: rgba(6, 37, 25, 0.48);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow:
+        0 22px 50px rgba(10, 34, 23, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.10);
+    position: relative;
+    overflow: hidden;
+    animation: cardIn 0.75s ease both;
+}
+
+.login-card::before {
+    content: "";
+    position: absolute;
+    top: -80px;
+    left: -60px;
+    width: 220px;
+    height: 220px;
+    background: radial-gradient(circle, rgba(255,255,255,0.10), transparent 70%);
+    pointer-events: none;
+}
+
+@keyframes cardIn {
+    from {
+        opacity: 0;
+        transform: translateY(28px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Logo principal */
+.logo-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 14px;
+    position: relative;
+    z-index: 2;
+}
+
+.logo {
+    width: 92px;
+    height: 92px;
+    object-fit: contain;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-radius: 50%;
+    animation: logoFloat 3s ease-in-out infinite;
+    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.22));
+}
+
+@keyframes logoFloat {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+/* Títulos */
+.login-card h1,
+.login-title {
+    margin: 0;
+    text-align: center;
+    color: #ffffff;
+    font-size: 2rem;
+    font-weight: 900;
+    letter-spacing: -0.8px;
+    position: relative;
+    z-index: 2;
+}
+
+.login-card p,
+.login-subtitle {
+    margin: 8px 0 28px;
+    text-align: center;
+    color: rgba(255,255,255,0.82);
+    font-size: 0.98rem;
+    font-weight: 500;
+    position: relative;
+    z-index: 2;
+}
+
+/* Inputs */
+.form-group {
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 2;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #e6edf1;
+    font-size: 0.90rem;
+    font-weight: 700;
+}
+
+.form-group input {
+    width: 100%;
+    height: 54px;
+    padding: 0 16px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.16);
+    background: rgba(9, 29, 47, 0.55);
+    color: #ffffff;
+    font-size: 0.96rem;
+    font-weight: 600;
+    outline: none;
+    box-sizing: border-box;
+    transition: all 0.25s ease;
+}
+
+.form-group input::placeholder {
+    color: rgba(255,255,255,0.40);
+}
+
+.form-group input:focus {
+    border-color: rgba(96, 165, 250, 0.55);
+    box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.14);
+    transform: translateY(-1px);
+}
+
+/* Botón */
+button[type="submit"],
+.login-button,
+.btn-login {
+    width: 100%;
+    height: 56px;
+    border: none;
+    border-radius: 15px;
+    background: linear-gradient(135deg, #469160 0%, #3b8757 50%, #32774b 100%);
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow:
+        0 14px 28px rgba(50, 119, 75, 0.25),
+        inset 0 1px 0 rgba(255,255,255,0.16);
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+button[type="submit"]::before,
+.login-button::before,
+.btn-login::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -120%;
+    width: 80%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.24), transparent);
+    transition: left 0.6s ease;
+}
+
+button[type="submit"]:hover,
+.login-button:hover,
+.btn-login:hover {
+    transform: translateY(-2px);
+    box-shadow:
+        0 18px 34px rgba(50, 119, 75, 0.30),
+        inset 0 1px 0 rgba(255,255,255,0.18);
+}
+
+button[type="submit"]:hover::before,
+.login-button:hover::before,
+.btn-login:hover::before {
+    left: 120%;
+}
+
+/* Footer */
+.login-footer {
+    margin-top: 26px;
+    text-align: center;
+    color: rgba(255,255,255,0.70);
+    font-size: 0.80rem;
+    line-height: 1.45;
+    position: relative;
+    z-index: 2;
+}
+
+/* Responsive */
+@media (max-width: 520px) {
+    .login-card {
+        padding: 34px 24px 28px;
+        border-radius: 24px;
+    }
+
+    .logo {
+        width: 80px;
+        height: 80px;
+    }
+
+    .login-card h1,
+    .login-title {
+        font-size: 1.75rem;
+    }
+
+    .logo-1,
+    .logo-2,
+    .logo-3,
+    .logo-4 {
+        opacity: 0.04;
+    }
+}

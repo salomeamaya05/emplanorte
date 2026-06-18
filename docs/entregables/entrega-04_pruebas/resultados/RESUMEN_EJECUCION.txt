@@ -1,0 +1,116 @@
+================================================================================
+  RESUMEN CONSOLIDADO DE EJECUCION DE PRUEBAS — EMPLANORTE S.A.S.
+  Entrega 04 — Plan de Pruebas
+  Fecha  : 2026-06-09
+  Hora   : 23:05:00 (America/Bogota)
+  Entorno: Windows 11 | Java 25.0.1 | Spring Boot 3.2.5 | Maven 3.9.6
+  Comando: mvn test  (una sola corrida de toda la suite)
+================================================================================
+
+RESUMEN GLOBAL
+--------------
+  Clases de prueba ejecutadas : 9
+  Total de pruebas            : 166
+  Pruebas exitosas            : 142
+  Fallos                      : 23
+  Errores                     : 1
+  Omitidas                    : 0
+  Resultado global            : NO APROBADO (24 casos: ver detalle abajo)
+
+  Las pruebas se ampliaron actuando como tester: se agregaron casos limite,
+  validacion de mensajes y particiones de equivalencia. Los 24 casos en rojo
+  son INTENCIONALES: codifican lo que el Plan exige pero que el codigo aun no
+  implementa (validaciones de entrada y reglas de negocio). Se dejan en ROJO
+  como evidencia documentada del gap (criterio seccion 7 del Plan).
+
+================================================================================
+RESULTADO POR MODULO
+================================================================================
+
+  Modulo (clase de prueba)                 Pruebas  Exito  Falla/Err  Estado
+  ---------------------------------------- -------- ------ --------- ----------
+  AuthService (RNF05)                          13     13       0     APROBADO
+  AuthController (RNF05, integracion HTTP)     26     17       9     NO APROBADO
+  ProductoService (RF01-RF04)                  32     25       7     NO APROBADO
+  VentaService (RF05-RF08)                     22     22       0     APROBADO
+  VentaController (RF05, integracion HTTP)     13     13       0     APROBADO
+  GastoService (RF09-RF10)                     18     14       4     NO APROBADO
+  ClienteService (RF13)                        16     13       3     NO APROBADO
+  DashboardService (RF11-RF12)                 12     12       0     APROBADO
+  CotizacionService (RF14)                     14     13       1     NO APROBADO
+  ---------------------------------------- -------- ------ --------- ----------
+  TOTAL                                       166    142      24
+
+================================================================================
+CASOS FALLIDOS (documentados intencionalmente, "tal cual esta el codigo")
+================================================================================
+
+  Todos comparten la misma causa: el codigo persiste sin validar la entrada ni
+  las reglas de negocio que el Plan exige. El detalle por modulo esta en cada
+  archivo *_resultado.txt.
+
+  (A) RF14 Cotizaciones — CP-44                                       [1 caso]
+      registrarCotizacion valida stock como si fuera venta y lanza
+      "Stock insuficiente"; el Plan exige permitir cantidades > stock sin
+      descontar inventario.  -> CotizacionServiceTest_resultado.txt
+
+  (B) RNF05 Login HTTP — validaciones de entrada                      [9 casos]
+      correo/contrasena vacios, en blanco, formato de correo, contrasena con
+      mayuscula, y bloqueo tras 5 intentos (CP-47). Hoy todo lo "no null"
+      devuelve 401 en vez de 400/429.  -> AuthControllerTest_resultado.txt
+
+  (C) RF01-RF04 Productos — guardar() sin validacion                  [7 casos]
+      CP-02 (nombre vacio/null/espacios), CP-03 (stock negativo),
+      precio negativo/cero, CP-04 (nombre duplicado).
+      -> ProductoServiceTest_resultado.txt
+
+  (D) RF09-RF10 Gastos — guardar() sin validacion                     [4 casos]
+      CP-28 (fecha futura), CP-29 (valor 0 / negativo), CP-31 (categoria
+      duplicada).  -> GastoServiceTest_resultado.txt
+
+  (E) RF13 Clientes — guardar() sin validacion                        [3 casos]
+      CP-40 (nombre vacio/null), CP-41 (telefono con formato invalido).
+      -> ClienteServiceTest_resultado.txt
+
+      TOTAL casos en rojo: 1 + 9 + 7 + 4 + 3 = 24
+
+================================================================================
+COBERTURA DE REQUISITOS
+================================================================================
+
+  RF01-RF04  Productos ........ ProductoServiceTest      25 OK / 7 GAP
+  RF05-RF08  Ventas ........... VentaServiceTest         OK
+  RF05       Ventas HTTP ...... VentaControllerTest      OK
+  RF09-RF10  Gastos ........... GastoServiceTest         14 OK / 4 GAP
+  RF11-RF12  Dashboard ........ DashboardServiceTest     OK
+  RF13       Clientes ......... ClienteServiceTest       13 OK / 3 GAP
+  RF14       Cotizaciones ..... CotizacionServiceTest    13 OK / 1 GAP (CP-44)
+  RNF05      Seguridad (svc) .. AuthService              OK
+  RNF05      Login HTTP ....... AuthController           17 OK / 9 GAP
+
+  Nota: el Plan define CP-01 a CP-48. La suite automatizada cubre la logica de
+  servicio/controlador. Las pruebas de UI, rendimiento, concurrencia real en BD
+  y escenarios end-to-end (secciones 3-6 del Plan) quedan para ejecucion manual
+  / fases posteriores, tal como el propio Plan indica.
+
+================================================================================
+LECTURA RAPIDA DEL RESULTADO
+================================================================================
+
+  - Toda la LOGICA implementada funciona y esta verificada (142 pruebas verdes):
+    calculos financieros, descuento de stock, baja logica, seguridad de login,
+    resumen financiero, ordenamientos, etc.
+  - El hueco transversal es la VALIDACION DE ENTRADA: los servicios guardan sin
+    validar campos obligatorios, rangos numericos, fechas ni duplicados. Esos 24
+    casos en rojo marcan exactamente que falta para cumplir el Plan al 100%.
+
+================================================================================
+COMO REPRODUCIR
+================================================================================
+
+  cd src/backend
+  ./mvnw.cmd test
+
+  Reportes crudos de JUnit/Surefire: src/backend/target/surefire-reports/
+
+================================================================================

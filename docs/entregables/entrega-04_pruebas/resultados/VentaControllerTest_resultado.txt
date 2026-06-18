@@ -1,0 +1,66 @@
+================================================================================
+  REPORTE DE EJECUCION DE PRUEBAS — EMPLANORTE S.A.S.
+  Modulo : Ventas HTTP (VentaController) — Prueba de Integracion
+  Fecha  : 2026-06-09
+  Hora   : 23:05:00 (America/Bogota)
+  Entorno: Windows 11 | Java 25.0.1 | Spring Boot 3.2.5
+  Ejecucion: @WebMvcTest + MockMvc (suite completa en una sola corrida)
+================================================================================
+
+RESUMEN
+-------
+  Total de pruebas ejecutadas : 13   (6 originales + 7 nuevas rol tester)
+  Pruebas exitosas            : 13
+  Fallos                      : 0
+  Errores                     : 0
+  Omitidas                    : 0
+  Tiempo total                : 0.164 segundos
+  Resultado                   : APROBADO
+
+================================================================================
+DETALLE POR CASO DE PRUEBA — respuesta HTTP del sistema
+================================================================================
+
+  Estado  Endpoint / caso                                  Respuesta
+  ------- ------------------------------------------------ -----------------------
+  PASO    GET  /api/ventas con registros                   200 + lista
+  PASO    GET  /api/ventas sin registros                   200 + arreglo vacio
+  PASO    POST /api/ventas valida (CP-13)                  201 + venta
+  PASO    POST /api/ventas stock insuficiente (CP-14)      400 + "Stock insuficiente"
+  PASO    POST /api/ventas sin productos (CP-15)           400
+  PASO    POST /api/ventas error generico                  400 + mensaje del servicio
+  --- nuevas (rol tester) -------------------------------------------------------
+  PASO    POST 201 expone TODOS los campos financieros     numeroVenta, metodoPago,
+          (subtotal, descuento, total, totalCosto, ganancia)  subtotal=4500...
+  PASO    POST cantidad cero -> servicio rechaza           400 + "mayor a cero"
+  PASO    GET  /api/ventas/{id}/detalles                   200 + arreglo
+  PASO    GET  /api/ventas/{id}/detalles venta inexistente 400 + "Venta no encontrada"
+  PASO    POST JSON malformado                             400
+  PASO    POST Content-Type text/plain                     415 Unsupported Media Type
+  PASO    DELETE /api/ventas                               405 Method Not Allowed
+
+================================================================================
+REQUISITOS CUBIERTOS
+================================================================================
+
+  RF05/RF06/RF07/RF08 via HTTP — codigos 201/400 correctos                CUBIERTO
+  Robustez de la API REST — 400 (datos malos), 415 (media type), 405 (verbo)
+
+================================================================================
+OBSERVACIONES
+================================================================================
+
+  - El controlador traduce cualquier RuntimeException del servicio a HTTP 400
+    propagando el mensaje. Las respuestas exitosas exponen todos los campos de
+    la venta (incluidos los financieros) en JSON.
+  - El tiempo es bajo porque el contexto web de Spring ya estaba levantado por
+    otras pruebas @WebMvcTest de la misma corrida.
+
+================================================================================
+ARCHIVOS DEL PROYECTO
+================================================================================
+
+  Pruebas    : src/backend/src/test/java/com/emplanorte/controller/VentaControllerTest.java
+  Controlador: src/backend/src/main/java/com/emplanorte/controller/VentaController.java
+
+================================================================================

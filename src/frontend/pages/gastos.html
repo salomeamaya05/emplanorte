@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMPLANORTE - Gastos</title>
+    <link rel="icon" type="image/png" href="../img/Logo.png">
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Estilos -->
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="../css/app.css">
+    <style>
+        /* --- Category Management Section --- */
+        .categories-section {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--card-shadow);
+            margin-top: 24px;
+            overflow: hidden;
+        }
+        .categories-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .categories-header h3 {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+        .categories-body {
+            padding: 20px;
+        }
+        .category-add-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .category-add-row input {
+            flex: 1;
+            padding: 9px 12px;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            color: var(--text-dark);
+            font-family: var(--font-sans);
+            outline: none;
+            transition: var(--transition);
+        }
+        .category-add-row input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(49, 130, 206, 0.15);
+        }
+        .category-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .category-list li {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-bottom: 1px solid #f0f2f5;
+            font-size: 13px;
+            color: var(--text-medium);
+        }
+        .category-list li:last-child {
+            border-bottom: none;
+        }
+        .category-list li .cat-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-sm);
+            background: var(--warning-light);
+            color: var(--warning);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        .category-list .cat-empty {
+            text-align: center;
+            padding: 24px;
+            color: var(--text-light);
+            font-size: 13px;
+        }
+        /* --- Ver Gasto: detalle + auditoría --- */
+        .ver-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px 16px;
+            margin-bottom: 18px;
+        }
+        .ver-grid .ver-full { grid-column: 1 / -1; }
+        .ver-label {
+            display: block;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-light);
+            margin-bottom: 2px;
+        }
+        .ver-value {
+            font-size: 14px;
+            color: var(--text-dark);
+            font-weight: 600;
+        }
+        .ver-subtitle {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin: 0 0 10px;
+            padding-top: 14px;
+            border-top: 1px solid var(--card-border);
+        }
+        .audit-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+        .audit-item {
+            display: flex;
+            gap: 10px;
+            padding: 10px 12px;
+            background: #fafbfc;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+        }
+        .audit-badge {
+            flex-shrink: 0;
+            height: fit-content;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .audit-crea { background: #f0fff4; color: #38a169; }
+        .audit-edita { background: var(--warning-light); color: var(--warning); }
+        .audit-head { font-size: 12px; color: var(--text-medium); margin-bottom: 3px; }
+        .audit-detail { font-size: 13px; color: var(--text-dark); }
+        .audit-loading { font-size: 13px; color: var(--text-light); text-align: center; padding: 16px; }
+    </style>
+</head>
+<body class="app-body">
+
+    <div class="app-layout">
+        <!-- Main Content -->
+        <div class="main-content">
+
+            <!-- Page Header -->
+            <div class="page-header">
+                <h1 class="page-title">Gastos</h1>
+                <div class="page-actions">
+                    <button class="btn-app btn-app-primary" onclick="openModalRegistrarGasto()">
+                        ➕ Registrar Gasto
+                    </button>
+                </div>
+            </div>
+
+            <!-- Page Body -->
+            <div class="page-body">
+
+                <!-- Summary Cards -->
+                <div class="summary-cards">
+                    <div class="summary-card">
+                        <div class="card-icon icon-danger">💸</div>
+                        <div class="card-info">
+                            <div class="card-label">Total Gastos</div>
+                            <div class="card-value" id="totalGastos">$ 0</div>
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="card-icon icon-warning">📋</div>
+                        <div class="card-info">
+                            <div class="card-label">Nº Gastos</div>
+                            <div class="card-value" id="cantidadGastos">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Bar -->
+                <div class="filter-bar">
+                    <label style="font-size:13px; font-weight:600; color:var(--text-medium);">Desde:</label>
+                    <input type="date" id="filtroDesde">
+                    <label style="font-size:13px; font-weight:600; color:var(--text-medium);">Hasta:</label>
+                    <input type="date" id="filtroHasta">
+                    <button class="btn-app btn-app-primary btn-app-sm" id="btnFiltrar">
+                        🔍 Filtrar
+                    </button>
+                    <button class="btn-app btn-app-outline btn-app-sm" id="btnLimpiarFiltro">
+                        Limpiar
+                    </button>
+                </div>
+
+                <!-- Data Table -->
+                <div class="data-section">
+                    <table class="data-table" id="tablaGastos">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Fecha</th>
+                                <th>Categoría</th>
+                                <th>Descripción</th>
+                                <th>Valor</th>
+                                <th>Registrado por</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gastosBody">
+                            <!-- Rendered by JS -->
+                        </tbody>
+                    </table>
+                    <!-- Empty State -->
+                    <div class="empty-state hidden" id="emptyState">
+                        <div class="empty-icon">📋</div>
+                        <div class="empty-title">No hay gastos registrados</div>
+                        <div class="empty-desc">Registra tu primer gasto usando el botón superior.</div>
+                    </div>
+                </div>
+
+                <!-- Categories Management Section -->
+                <div class="categories-section">
+                    <div class="categories-header">
+                        <h3>📂 Categorías de Gasto</h3>
+                    </div>
+                    <div class="categories-body">
+                        <div class="category-add-row">
+                            <input type="text" id="nuevaCategoriaInput" placeholder="Nombre de nueva categoría..." maxlength="100">
+                            <button class="btn-app btn-app-success btn-app-sm" id="btnAgregarCategoria">
+                                ➕ Agregar
+                            </button>
+                        </div>
+                        <ul class="category-list" id="categoriasList">
+                            <!-- Rendered by JS -->
+                        </ul>
+                    </div>
+                </div>
+
+            </div><!-- .page-body -->
+        </div><!-- .main-content -->
+    </div><!-- .app-layout -->
+
+    <!-- ======================= MODAL: Registrar Gasto ======================= -->
+    <div class="modal-overlay" id="modalRegistrarGasto">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Registrar Gasto</h3>
+                <button class="modal-close" onclick="closeModal('modalRegistrarGasto')">&times;</button>
+            </div>
+            <form id="formRegistrarGasto">
+                <div class="modal-body">
+                    <div class="form-group-app">
+                        <label for="gastoCategoria">Categoría *</label>
+                        <select id="gastoCategoria" required>
+                            <option value="">Seleccione una categoría</option>
+                            <!-- Options populated from API -->
+                        </select>
+                    </div>
+                    <div class="form-group-app">
+                        <label for="gastoDescripcion">Descripción *</label>
+                        <input type="text" id="gastoDescripcion" placeholder="Descripción del gasto" required maxlength="255">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group-app">
+                            <label for="gastoValor">Valor (COP) *</label>
+                            <input type="number" id="gastoValor" placeholder="0" min="1" step="1" required>
+                        </div>
+                        <div class="form-group-app">
+                            <label for="gastoFecha">Fecha *</label>
+                            <input type="date" id="gastoFecha" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-app btn-app-outline" onclick="closeModal('modalRegistrarGasto')">Cancelar</button>
+                    <button type="submit" class="btn-app btn-app-primary" id="btnGuardarGasto">💾 Guardar Gasto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ======================= MODAL: Ver Gasto (detalle + auditoría) ======================= -->
+    <div class="modal-overlay" id="modalVerGasto">
+        <div class="modal" style="max-width:480px;">
+            <div class="modal-header">
+                <h3>Detalle del Gasto</h3>
+                <button class="modal-close" onclick="closeModal('modalVerGasto')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="ver-grid">
+                    <div>
+                        <span class="ver-label">Categoría</span>
+                        <span id="verCategoria" class="ver-value">-</span>
+                    </div>
+                    <div>
+                        <span class="ver-label">Valor</span>
+                        <span id="verValor" class="ver-value">-</span>
+                    </div>
+                    <div>
+                        <span class="ver-label">Fecha</span>
+                        <span id="verFecha" class="ver-value">-</span>
+                    </div>
+                    <div>
+                        <span class="ver-label">Registrado por</span>
+                        <span id="verRegistradoPor" class="ver-value">-</span>
+                    </div>
+                    <div class="ver-full">
+                        <span class="ver-label">Descripción</span>
+                        <span id="verDescripcion" class="ver-value">-</span>
+                    </div>
+                </div>
+                <h4 class="ver-subtitle">📜 Historial de cambios</h4>
+                <div id="verHistorial" class="audit-list"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-app btn-app-outline" onclick="closeModal('modalVerGasto')">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../js/api.js"></script>
+    <script src="../js/utils.js"></script>
+    <script>
+        // ---- Initialize ----
+        checkSession();
+        renderSidebar('gastos');
+
+        // ---- State ----
+        let gastosList = [];
+        let categoriasList = [];
+        let gastoIdEditando = null;
+
+        // ---- DOM References ----
+        const gastosBody = document.getElementById('gastosBody');
+        const emptyState = document.getElementById('emptyState');
+        const totalGastosEl = document.getElementById('totalGastos');
+        const cantidadGastosEl = document.getElementById('cantidadGastos');
+        const filtroDesde = document.getElementById('filtroDesde');
+        const filtroHasta = document.getElementById('filtroHasta');
+        const categoriasListEl = document.getElementById('categoriasList');
+        const gastoCategoriaSelect = document.getElementById('gastoCategoria');
+        const gastoFechaInput = document.getElementById('gastoFecha');
+
+        // ---- Set default date to today ----
+        gastoFechaInput.value = todayISO();
+
+        // ---- Load initial data ----
+        loadGastos();
+        loadCategorias();
+
+        // =============================================
+        // EXPENSES: Load & Render
+        // =============================================
+        async function loadGastos() {
+            try {
+                gastosList = await ApiClient.listarGastos();
+                renderGastos(gastosList);
+            } catch (err) {
+                console.error('Error al cargar gastos:', err);
+                showToast('Error al cargar los gastos', 'error');
+            }
+        }
+
+        async function loadGastosFiltrados() {
+            const desde = filtroDesde.value;
+            const hasta = filtroHasta.value;
+
+            if (!desde || !hasta) {
+                showToast('Seleccione ambas fechas para filtrar', 'warning');
+                return;
+            }
+            if (desde > hasta) {
+                showToast('La fecha "Desde" no puede ser mayor que "Hasta"', 'warning');
+                return;
+            }
+
+            try {
+                gastosList = await ApiClient.listarGastosPorRango(desde, hasta);
+                renderGastos(gastosList);
+                showToast(`Mostrando gastos del ${formatDate(desde)} al ${formatDate(hasta)}`, 'success');
+            } catch (err) {
+                console.error('Error al filtrar gastos:', err);
+                showToast('Error al filtrar gastos', 'error');
+            }
+        }
+
+        function renderGastos(gastos) {
+            const tablaGastos = document.getElementById('tablaGastos');
+            if (!gastos || gastos.length === 0) {
+                gastosBody.innerHTML = '';
+                tablaGastos.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                totalGastosEl.textContent = formatCurrency(0);
+                cantidadGastosEl.textContent = '0';
+                return;
+            }
+
+            tablaGastos.classList.remove('hidden');
+            emptyState.classList.add('hidden');
+
+            // Calculate summary
+            const totalValor = gastos.reduce((sum, g) => sum + (Number(g.valor) || 0), 0);
+            totalGastosEl.textContent = formatCurrency(totalValor);
+            cantidadGastosEl.textContent = gastos.length;
+
+            // Render rows
+            gastosBody.innerHTML = gastos.map((g, i) => {
+                const categoriaNombre = g.categoria ? g.categoria.nombre : '-';
+                const registradoPor = g.usuario ? g.usuario.nombre : '-';
+                return `
+                    <tr>
+                        <td>${i + 1}</td>
+                        <td>${formatDate(g.fechaGasto)}</td>
+                        <td><span class="badge badge-warning">${categoriaNombre}</span></td>
+                        <td>${g.descripcion || '-'}</td>
+                        <td class="fw-bold text-danger">${formatCurrency(g.valor)}</td>
+                        <td>${registradoPor}</td>
+                        <td>
+                            <div style="display:flex;gap:6px;">
+                                <button class="btn-app btn-app-outline btn-app-sm" onclick="verGasto(${g.id})">
+                                    Ver
+                                </button>
+                                <button class="btn-app btn-app-outline btn-app-sm" onclick="editarGasto(${g.id})">
+                                    Editar
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // =============================================
+        // CATEGORIES: Load & Render
+        // =============================================
+        async function loadCategorias() {
+            try {
+                categoriasList = await ApiClient.listarCategoriasGasto();
+                renderCategorias(categoriasList);
+                populateCategoriaSelect(categoriasList);
+            } catch (err) {
+                console.error('Error al cargar categorías:', err);
+                showToast('Error al cargar categorías de gasto', 'error');
+            }
+        }
+
+        function renderCategorias(categorias) {
+            if (!categorias || categorias.length === 0) {
+                categoriasListEl.innerHTML = '<li class="cat-empty">No hay categorías registradas. Agrega una arriba.</li>';
+                return;
+            }
+
+            categoriasListEl.innerHTML = categorias.map(c => `
+                <li>
+                    <span class="cat-icon">📁</span>
+                    <span>${c.nombre}</span>
+                </li>
+            `).join('');
+        }
+
+        function populateCategoriaSelect(categorias) {
+            gastoCategoriaSelect.innerHTML = '<option value="">Seleccione una categoría</option>';
+            if (categorias && categorias.length > 0) {
+                categorias.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = c.nombre;
+                    gastoCategoriaSelect.appendChild(opt);
+                });
+            }
+        }
+
+        // =============================================
+        // ADD CATEGORY
+        // =============================================
+        document.getElementById('btnAgregarCategoria').addEventListener('click', async () => {
+            const input = document.getElementById('nuevaCategoriaInput');
+            const nombre = input.value.trim();
+
+            if (!nombre) {
+                showToast('Ingrese un nombre para la categoría', 'warning');
+                input.focus();
+                return;
+            }
+
+            // Check for duplicate
+            const existe = categoriasList.some(c => c.nombre.toLowerCase() === nombre.toLowerCase());
+            if (existe) {
+                showToast('Ya existe una categoría con ese nombre', 'warning');
+                return;
+            }
+
+            try {
+                await ApiClient.crearCategoriaGasto({ nombre });
+                showToast('Categoría creada exitosamente', 'success');
+                input.value = '';
+                await loadCategorias();
+            } catch (err) {
+                console.error('Error al crear categoría:', err);
+                showToast('Error al crear la categoría', 'error');
+            }
+        });
+
+        // Allow Enter key in category input
+        document.getElementById('nuevaCategoriaInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('btnAgregarCategoria').click();
+            }
+        });
+
+        // =============================================
+        // REGISTER EXPENSE (Modal)
+        // =============================================
+        function openModalRegistrarGasto() {
+            gastoIdEditando = null;
+
+            document.querySelector('#modalRegistrarGasto .modal-header h3').textContent = 'Registrar Gasto';
+            document.getElementById('btnGuardarGasto').textContent = '💾 Guardar Gasto';
+
+            resetForm('formRegistrarGasto');
+            gastoFechaInput.value = todayISO();
+            openModal('modalRegistrarGasto');
+        }
+        function editarGasto(id) {
+            const gasto = gastosList.find(g => g.id === id);
+
+            if (!gasto) {
+                showToast('No se encontró el gasto seleccionado', 'error');
+                return;
+            }
+
+            gastoIdEditando = id;
+
+            document.querySelector('#modalRegistrarGasto .modal-header h3').textContent = 'Editar Gasto';
+            document.getElementById('btnGuardarGasto').textContent = 'Actualizar Gasto';
+
+            document.getElementById('gastoCategoria').value = gasto.categoria ? gasto.categoria.id : '';
+            document.getElementById('gastoDescripcion').value = gasto.descripcion || '';
+            document.getElementById('gastoValor').value = Number(gasto.valor || 0);
+            document.getElementById('gastoFecha').value = gasto.fechaGasto || todayISO();
+
+            openModal('modalRegistrarGasto');
+        }
+
+        // =============================================
+        // VER GASTO (detalle + bitácora de auditoría)
+        // =============================================
+        async function verGasto(id) {
+            const gasto = gastosList.find(g => g.id === id);
+            if (!gasto) {
+                showToast('No se encontró el gasto seleccionado', 'error');
+                return;
+            }
+
+            document.getElementById('verCategoria').textContent = gasto.categoria ? gasto.categoria.nombre : '-';
+            document.getElementById('verDescripcion').textContent = gasto.descripcion || '-';
+            document.getElementById('verValor').textContent = formatCurrency(gasto.valor);
+            document.getElementById('verFecha').textContent = formatDate(gasto.fechaGasto);
+            document.getElementById('verRegistradoPor').textContent = gasto.usuario ? gasto.usuario.nombre : '-';
+
+            const histEl = document.getElementById('verHistorial');
+            histEl.innerHTML = '<div class="audit-loading">Cargando historial...</div>';
+            openModal('modalVerGasto');
+
+            try {
+                const auditoria = await ApiClient.listarAuditoriaGasto(id);
+                renderHistorial(auditoria);
+            } catch (err) {
+                console.error('Error al cargar la auditoría:', err);
+                histEl.innerHTML = '<div class="audit-loading">No se pudo cargar el historial de cambios.</div>';
+            }
+        }
+
+        function renderHistorial(auditoria) {
+            const histEl = document.getElementById('verHistorial');
+            if (!auditoria || auditoria.length === 0) {
+                histEl.innerHTML = '<div class="audit-loading">Sin registros de auditoría para este gasto.</div>';
+                return;
+            }
+
+            histEl.innerHTML = auditoria.map(a => {
+                const esCreacion = a.accion === 'creacion';
+                const quien = a.usuarioNombre || ('Usuario #' + (a.idUsuario || '?'));
+                return `
+                    <div class="audit-item">
+                        <span class="audit-badge ${esCreacion ? 'audit-crea' : 'audit-edita'}">
+                            ${esCreacion ? 'Creación' : 'Edición'}
+                        </span>
+                        <div class="audit-body">
+                            <div class="audit-head"><strong>${quien}</strong> · ${formatDateTime(a.fechaRegistro)}</div>
+                            <div class="audit-detail">
+                                ${a.categoriaNombre || '-'} · ${a.descripcion || '-'} · <strong>${formatCurrency(a.valor)}</strong>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Formatea un timestamp ISO a fecha y hora local legible.
+        function formatDateTime(iso) {
+            if (!iso) return '-';
+            const d = new Date(iso);
+            if (isNaN(d.getTime())) return iso;
+            return d.toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' });
+        }
+
+        document.getElementById('formRegistrarGasto').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const idCategoria = Number(gastoCategoriaSelect.value);
+            const descripcion = document.getElementById('gastoDescripcion').value.trim();
+            const valor = Number(document.getElementById('gastoValor').value);
+            const fechaGasto = gastoFechaInput.value;
+            const user = getUser();
+
+            if (!idCategoria) {
+                showToast('Seleccione una categoría', 'warning');
+                return;
+            }
+            if (!descripcion) {
+                showToast('Ingrese una descripción', 'warning');
+                return;
+            }
+            if (!valor || valor <= 0) {
+                showToast('Ingrese un valor válido', 'warning');
+                return;
+            }
+            if (!fechaGasto) {
+                showToast('Seleccione una fecha', 'warning');
+                return;
+            }
+
+            const btnGuardar = document.getElementById('btnGuardarGasto');
+            btnGuardar.disabled = true;
+            btnGuardar.textContent = 'Guardando...';
+
+            try {
+                const gastoData = {
+    categoria: { id: idCategoria },
+    usuario: { id: user ? user.id : null },
+    descripcion,
+    valor,
+    fechaGasto
+};
+
+if (gastoIdEditando) {
+    await ApiClient.actualizarGasto(gastoIdEditando, gastoData);
+    showToast('Gasto actualizado exitosamente', 'success');
+} else {
+    await ApiClient.registrarGasto(gastoData);
+    showToast('Gasto registrado exitosamente', 'success');
+}
+
+gastoIdEditando = null;
+                closeModal('modalRegistrarGasto');
+                resetForm('formRegistrarGasto');
+
+                // Reload data (respect active filter)
+                if (filtroDesde.value && filtroHasta.value) {
+                    await loadGastosFiltrados();
+                } else {
+                    await loadGastos();
+                }
+            } catch (err) {
+                console.error('Error al registrar gasto:', err);
+                showToast('Error al registrar el gasto', 'error');
+            } finally {
+                btnGuardar.disabled = false;
+                btnGuardar.textContent = '💾 Guardar Gasto';
+            }
+        });
+
+        // =============================================
+        // FILTER EVENTS
+        // =============================================
+        document.getElementById('btnFiltrar').addEventListener('click', loadGastosFiltrados);
+
+        document.getElementById('btnLimpiarFiltro').addEventListener('click', () => {
+            filtroDesde.value = '';
+            filtroHasta.value = '';
+            loadGastos();
+        });
+
+        // =============================================
+        // CLOSE MODAL ON OVERLAY CLICK
+        // =============================================
+        document.getElementById('modalRegistrarGasto').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                closeModal('modalRegistrarGasto');
+            }
+        });
+    </script>
+</body>
+</html>

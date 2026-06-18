@@ -1,0 +1,117 @@
+================================================================================
+  REPORTE DE EJECUCION DE PRUEBAS — EMPLANORTE S.A.S.
+  Modulo : Cotizaciones (CotizacionService)
+  Fecha  : 2026-06-09
+  Hora   : 22:42:49 (America/Bogota)
+  Entorno: Windows 11 | Java 25.0.1 | Spring Boot 3.2.5
+  Ejecucion: suite completa (mvn test) en una sola corrida
+================================================================================
+
+RESUMEN
+-------
+  Total de pruebas ejecutadas : 14   (12 originales + 2 nuevas rol tester)
+  Pruebas exitosas            : 13
+  Fallos                      : 0
+  Errores                     : 1
+  Omitidas                    : 0
+  Tiempo total                : 0.360 segundos
+  Resultado                   : NO APROBADO
+
+================================================================================
+DETALLE POR CASO DE PRUEBA
+================================================================================
+
+  #   Caso del Plan  Descripcion                                                Estado   Tiempo
+  --- -------------- ---------------------------------------------------------- -------- -------
+  1   CP-42          Cotizacion exitosa - numero, estado pendiente y fecha       PASO     0.017 s
+  2   CP-42b         Calculo de total - precio $1500 x 3 unidades = $4500        PASO     0.000 s
+  3   CP-42c         Con descuento - total = subtotal - descuento                PASO     0.000 s
+  4   CP-42d         Descuento excesivo - total queda en cero, nunca negativo    PASO     0.000 s
+  5   CP-43          Lista de productos vacia - cotizacion se rechaza            PASO     0.000 s
+  6   CP-44          Cantidad > stock - cotizacion permitida, stock sin cambios  ERROR    0.329 s
+  7   RF14           Convertir a venta exitosa - venta creada, estado convertida PASO     0.005 s
+  8   RF14           Convertir descuenta stock del producto correctamente        PASO     0.000 s
+  9   RF14           Convertir cotizacion ya convertida - RuntimeException       PASO     0.016 s
+  10  RF14           Convertir con stock insuficiente - RuntimeException         PASO     0.000 s
+  11  Particion      Cliente inexistente - RuntimeException descriptiva          PASO     0.016 s
+  12  Particion      Cotizacion inexistente al convertir - RuntimeException      PASO     0.000 s
+  13  NUEVA          Producto inexistente - RuntimeException "Producto..."       PASO     0.000 s
+  14  NUEVA(doc)     Comportamiento ACTUAL: cant 50 > stock 3 lanza              PASO     0.000 s
+                     "Stock insuficiente" (esto es lo que CP-44 considera defecto)
+
+================================================================================
+DETALLE DEL CASO FALLIDO
+================================================================================
+
+  Caso del Plan : CP-44
+  Metodo        : registrarCotizacion_cantidadMayorAlStock_sePermiteSinDescontarInventario
+  Tipo          : ERROR (excepcion no esperada)
+
+  Comportamiento esperado segun el Plan de Pruebas (CP-44):
+    "Producto con stock 5, cotizar 20 unidades -> Permitir (la cotizacion
+     no descuenta stock) pero alertar visualmente. Aclarar que la cotizacion
+     no es venta hasta confirmarse."
+    La prueba cotiza 50 unidades con solo 3 en stock y espera que la
+    cotizacion se ACEPTE sin tocar el inventario.
+
+  Comportamiento obtenido:
+    java.lang.RuntimeException: Stock insuficiente para "Botella PET 500ml".
+    Disponible: 3, solicitado: 50
+      at com.emplanorte.service.CotizacionService.registrarCotizacion(CotizacionService.java:109)
+      at ...CotizacionServiceTest...sePermiteSinDescontarInventario(CotizacionServiceTest.java:201)
+
+  Causa raiz:
+    CotizacionService.registrarCotizacion (lineas 106-110) valida el stock
+    disponible y lanza "Stock insuficiente" cuando la cantidad solicitada
+    supera el inventario. Esa validacion corresponde a una VENTA (RF08), no a
+    una COTIZACION. Una cotizacion es una propuesta comercial y, segun el plan,
+    debe permitir cantidades mayores al stock sin descontar inventario.
+
+  Correccion propuesta (NO aplicada en esta ejecucion):
+    Eliminar el bloque de validacion de stock de registrarCotizacion y dejar
+    esa validacion unicamente en convertirAVenta (que ya valida stock al
+    momento de confirmar, segun la prueba
+    convertirAVenta_stockInsuficienteAlConvertir_lanzaExcepcion, que PASA).
+
+================================================================================
+REQUISITOS FUNCIONALES CUBIERTOS
+================================================================================
+
+  RF14 - Generacion de cotizaciones                                    PARCIAL
+    CP-42: Creacion exitosa con numero unico, estado y fecha           OK
+    CP-43: Rechazo de cotizacion sin productos                         OK
+    CP-44: Cotizacion permite cantidades mayores al stock              FALLA
+    Conversion: cotizacion -> venta con validacion de stock al convertir  OK
+
+================================================================================
+OBSERVACIONES
+================================================================================
+
+  - Esta ejecucion se realizo "tal cual esta el codigo" el 2026-06-09, sin
+    aplicar correcciones. El caso CP-44 queda registrado como FALLIDO de forma
+    intencional para dejar rastro documentado, conforme al criterio de
+    finalizacion del plan (seccion 7): toda prueba que falle se documenta y se
+    abre el issue correspondiente.
+
+  - Diferencia clave de diseño (CP-44 vs RF08):
+    La COTIZACION no debe descontar inventario (es una propuesta comercial).
+    La VENTA si descuenta inventario al confirmar.
+    Al CONVERTIR una cotizacion a venta, se valida stock en ese momento.
+    El codigo actual rompe esta separacion al validar stock ya en la cotizacion.
+
+  - Accion siguiente: abrir issue en Jira asignado al modulo de Cotizaciones,
+    corregir CotizacionService y reincorporar el caso al ciclo de pruebas.
+
+  - Todas las pruebas usan mocks (Mockito): no requieren base de datos activa.
+
+================================================================================
+ARCHIVOS DEL PROYECTO
+================================================================================
+
+  Codigo fuente de las pruebas:
+  src/backend/src/test/java/com/emplanorte/service/CotizacionServiceTest.java
+
+  Servicio bajo prueba:
+  src/backend/src/main/java/com/emplanorte/service/CotizacionService.java
+
+================================================================================

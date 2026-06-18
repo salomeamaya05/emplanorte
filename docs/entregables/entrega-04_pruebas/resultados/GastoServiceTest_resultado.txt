@@ -1,0 +1,69 @@
+================================================================================
+  REPORTE DE EJECUCION DE PRUEBAS — EMPLANORTE S.A.S.
+  Modulo : Gastos y Categorias (GastoService)
+  Fecha  : 2026-06-09
+  Hora   : 23:05:00 (America/Bogota)
+  Entorno: Windows 11 | Java 25.0.1 | Spring Boot 3.2.5
+  Ejecucion: suite completa (mvn test) en una sola corrida
+================================================================================
+
+RESUMEN
+-------
+  Total de pruebas ejecutadas : 18   (10 originales + 8 nuevas rol tester)
+  Pruebas exitosas            : 14
+  Fallos                      : 4
+  Errores                     : 0
+  Omitidas                    : 0
+  Tiempo total                : 0.083 segundos
+  Resultado                   : NO APROBADO (4 validaciones del Plan no implementadas)
+
+================================================================================
+COMPORTAMIENTO ACTUAL VERIFICADO (PASO)
+================================================================================
+
+  RF09  Gastos
+    PASO  CP-27     Guardar gasto completo -> almacenado
+    PASO  CP-27b    Gasto sin fecha -> asigna hoy automaticamente
+    PASO  CP-27c    Gasto con fecha explicita -> respeta la fecha
+    PASO  -         Listar todos / por rango; vacio sin error
+    PASO  Particion Valor BigDecimal 125000.75 -> exacto
+    PASO  NUEVA     actualizarGasto existente -> campos actualizados
+    PASO  NUEVA     actualizarGasto inexistente -> "Gasto no encontrado"
+  RF10  Categorias
+    PASO  CP-30     Crear categoria -> queda activa y persistida
+    PASO  CP-30b    Listar categorias activas / vacio sin error
+    PASO  NUEVA     guardarCategoria fuerza activo=true aunque llegue false
+
+================================================================================
+VALIDACIONES DEL PLAN NO IMPLEMENTADAS (pruebas en ROJO — gap documentado)
+================================================================================
+
+  guardar()/guardarCategoria() no validan nada (guardar solo pone fecha=hoy si
+  es null). Lo que el Plan exige y hoy NO ocurre:
+
+  Estado  Caso     Entrada                      Esperado            Obtenido
+  ------- -------- ---------------------------- ------------------- ----------
+  FALLA   CP-28    fecha del gasto en el futuro rechazo validacion  se guarda
+  FALLA   CP-29    valor del gasto = 0          rechazo validacion  se guarda
+  FALLA   CP-29b   valor del gasto = -100       rechazo validacion  se guarda
+  FALLA   CP-31    categoria con nombre duplicado rechazo "ya existe" duplicado
+
+================================================================================
+OBSERVACIONES Y CORRECCION PROPUESTA (no aplicada)
+================================================================================
+
+  En GastoService agregar:
+    - rechazar fechaGasto posterior a hoy (CP-28).
+    - exigir valor > 0 (CP-29 / CP-29b).
+    - en guardarCategoria, verificar nombre duplicado antes de guardar (CP-31).
+  CP-32 (eliminar categoria con gastos asociados) no tiene metodo de borrado en
+  el servicio: queda pendiente de implementar junto con su prueba.
+
+================================================================================
+ARCHIVOS DEL PROYECTO
+================================================================================
+
+  Pruebas : src/backend/src/test/java/com/emplanorte/service/GastoServiceTest.java
+  Servicio: src/backend/src/main/java/com/emplanorte/service/GastoService.java
+
+================================================================================
