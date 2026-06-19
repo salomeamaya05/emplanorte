@@ -2,9 +2,12 @@
    CLIENTE API - EMPLANORTE S.A.S.
    Wrapper de comunicación con el backend (http://localhost:8080/api)
    ============================================================ */
+// URL del backend desplegado en Render. Debe coincidir con el nombre del
+// servicio web definido en render.yaml (emplanorte-backend). Si Render le
+// asigna un sufijo distinto al crear el servicio, actualiza esta línea.
 const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://localhost:8080/api'
-    : 'https://TU-BACKEND.onrender.com/api';
+    : 'https://emplanorte-backend.onrender.com/api';
 
 const ApiClient = {
     // Utilidad interna para peticiones fetch
