@@ -7,7 +7,7 @@
 // asigna un sufijo distinto al crear el servicio, actualiza esta línea.
 const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://localhost:8080/api'
-    : 'https://emplanorte-2.onrender.com/api';
+    : 'https://emplanorte-2.onrender.com';
 
 const ApiClient = {
     // Utilidad interna para peticiones fetch
