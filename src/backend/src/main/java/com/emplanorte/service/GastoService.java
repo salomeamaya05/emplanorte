@@ -75,6 +75,18 @@ public class GastoService {
         return guardado;
     }
 
+    @Transactional
+    public void eliminarGasto(Long id) {
+        Gasto gasto = gastoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Gasto no encontrado"));
+
+        // 1. Eliminar registros en auditoria_gastos asociados a este gasto
+        auditoriaGastoRepository.deleteByIdGasto(id);
+
+        // 2. Eliminar el gasto
+        gastoRepository.deleteById(id);
+    }
+
     // Historial de cambios de un gasto (bitácora de auditoría)
     public List<AuditoriaGasto> obtenerAuditoria(Long idGasto) {
         return auditoriaGastoRepository.findByIdGastoOrderByFechaRegistroAsc(idGasto);

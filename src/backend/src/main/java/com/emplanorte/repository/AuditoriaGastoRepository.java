@@ -9,4 +9,7 @@ public interface AuditoriaGastoRepository extends JpaRepository<AuditoriaGasto, 
 
     // Historial de un gasto en orden cronológico (de creación a últimas ediciones)
     List<AuditoriaGasto> findByIdGastoOrderByFechaRegistroAsc(Long idGasto);
+
+    // Eliminar auditoría por ID de gasto
+    void deleteByIdGasto(Long idGasto);
 }

@@ -435,6 +435,9 @@
                                 <button class="btn-app btn-app-outline btn-app-sm" onclick="editarGasto(${g.id})">
                                     Editar
                                 </button>
+                                <button class="btn-app btn-app-danger btn-app-sm" onclick="eliminarGasto(${g.id})">
+                                    Eliminar
+                                </button>
                             </div>
                         </td>
                     </tr>
@@ -553,6 +556,24 @@
             document.getElementById('gastoFecha').value = gasto.fechaGasto || todayISO();
 
             openModal('modalRegistrarGasto');
+        }
+
+        async function eliminarGasto(id) {
+            if (confirm('¿Está seguro de eliminar este gasto? Esta acción no se puede deshacer')) {
+                try {
+                    await ApiClient.eliminarGasto(id);
+                    showToast('Gasto eliminado exitosamente', 'success');
+                    // Reload data (respect active filter)
+                    if (filtroDesde.value && filtroHasta.value) {
+                        await loadGastosFiltrados();
+                    } else {
+                        await loadGastos();
+                    }
+                } catch (err) {
+                    console.error('Error al eliminar gasto:', err);
+                    showToast('Error al eliminar el gasto', 'error');
+                }
+            }
         }
 
         // =============================================

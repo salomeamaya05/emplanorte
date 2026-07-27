@@ -159,6 +159,10 @@ const ApiClient = {
         });
     },
 
+    async eliminarGasto(id) {
+        return this.request(`/gastos/${id}`, { method: 'DELETE' });
+    },
+
     async listarAuditoriaGasto(id) {
         return this.request(`/gastos/${id}/auditoria`, { method: 'GET' });
     },

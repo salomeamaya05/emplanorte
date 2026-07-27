@@ -41,6 +41,12 @@ public ResponseEntity<Gasto> actualizarGasto(@PathVariable Long id, @RequestBody
     return ResponseEntity.ok(gastoService.actualizarGasto(id, gasto));
 }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminarGasto(@PathVariable Long id) {
+        gastoService.eliminarGasto(id);
+        return ResponseEntity.noContent().build();
+    }
+
     // Bitácora de auditoría: historial de cambios de un gasto
     @GetMapping("/{id}/auditoria")
     public ResponseEntity<List<AuditoriaGasto>> obtenerAuditoriaGasto(@PathVariable Long id) {
