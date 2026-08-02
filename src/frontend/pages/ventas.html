@@ -720,9 +720,22 @@
         // ---- Resumen (Summary Cards) ----
         function actualizarResumen() {
             const ventasFiltradas = obtenerVentasFiltradas();
-            const totalVentas = ventasFiltradas.reduce((sum, v) => sum + (Number(v.total) || 0), 0);
-            const totalGanancia = ventasFiltradas.reduce((sum, v) => sum + (Number(v.ganancia) || 0), 0);
-            const numVentas = ventasFiltradas.length;
+
+            const ventasValidas = ventasFiltradas.filter(
+                v => String(v.estado || '').trim().toLowerCase() !== 'anulada'
+            );
+
+            const totalVentas = ventasValidas.reduce(
+                (sum, v) => sum + (Number(v.total) || 0),
+                0
+            );
+
+            const totalGanancia = ventasValidas.reduce(
+                (sum, v) => sum + (Number(v.ganancia) || 0),
+                0
+            );
+
+            const numVentas = ventasValidas.length;
 
             document.getElementById('totalVentas').textContent = formatCurrency(totalVentas);
             document.getElementById('totalGanancia').textContent = formatCurrency(totalGanancia);
