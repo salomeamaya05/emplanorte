@@ -47,7 +47,9 @@ function formatDateTime(dateStr) {
 
 // ---- Fecha de hoy en formato YYYY-MM-DD ----
 function todayISO() {
-    return new Date().toISOString().split('T')[0];
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().split('T')[0];
 }
 
 // ---- Toast Notifications ----
@@ -135,6 +137,12 @@ function renderSidebar(activePage) {
                 <a href="ventas.html" class="nav-item ${activePage === 'ventas' ? 'active' : ''}">
                     <span class="nav-icon">💰</span> Ventas
                 </a>
+                <a href="compras.html" class="nav-item ${activePage === 'compras' ? 'active' : ''}">
+                    <span class="nav-icon">🛒</span> Compras
+                </a>
+                <a href="facturas-proveedores.html" class="nav-item ${activePage === 'facturas' ? 'active' : ''}">
+                    <span class="nav-icon">🧾</span> Facturas y Pagos
+                </a>
                 <a href="gastos.html" class="nav-item ${activePage === 'gastos' ? 'active' : ''}">
                     <span class="nav-icon">📋</span> Gastos
                 </a>
@@ -151,6 +159,9 @@ function renderSidebar(activePage) {
                 <a href="clientes.html" class="nav-item ${activePage === 'clientes' ? 'active' : ''}">
                     <span class="nav-icon">👤</span> Clientes
                 </a>
+                <a href="proveedores.html" class="nav-item ${activePage === 'proveedores' ? 'active' : ''}">
+                    <span class="nav-icon">🚚</span> Proveedores
+                </a>
             </div>
         </nav>
 
@@ -159,7 +170,7 @@ function renderSidebar(activePage) {
             <button class="btn-logout" id="btnLogout">
                 <span>🚪</span> Cerrar Sesión
             </button>
-            <div class="sidebar-version">v1.0.0</div>
+            <div class="sidebar-version">v2.1.0</div>
         </div>
     </aside>
     `;

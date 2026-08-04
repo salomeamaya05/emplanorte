@@ -19,7 +19,8 @@
             border: 1px solid var(--card-border);
             border-radius: var(--radius-md);
             margin-bottom: 16px;
-            overflow: hidden;
+            overflow: visible;
+            background: #fff;
         }
 
         .line-items-header {
@@ -68,6 +69,53 @@
             border-color: var(--primary);
             box-shadow: 0 0 0 2px rgba(49, 130, 206, 0.15);
         }
+
+
+        .product-picker {
+            position: relative;
+            min-width: 0;
+        }
+
+        .product-search-results {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            display: none;
+            max-height: 230px;
+            overflow-y: auto;
+            background: #fff;
+            border: 1px solid var(--card-border);
+            border-radius: 9px;
+            box-shadow: 0 14px 34px rgba(23, 43, 77, .16);
+            z-index: 1700;
+        }
+
+        .product-search-results.show { display: block; }
+
+        .product-search-message {
+            padding: 11px 12px;
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        .product-result {
+            width: 100%;
+            border: 0;
+            border-bottom: 1px solid #edf2f7;
+            background: #fff;
+            padding: 9px 11px;
+            text-align: left;
+            cursor: pointer;
+            display: grid;
+            gap: 2px;
+        }
+
+        .product-result:last-child { border-bottom: 0; }
+        .product-result:hover { background: #f4f9ff; }
+        .product-result-name { font-size: 12px; font-weight: 700; color: var(--text-dark); }
+        .product-result-meta { font-size: 10px; color: var(--text-light); }
+        .product-selected { border-color: var(--primary) !important; background: #f7fbff !important; }
 
         .line-item-row .subtotal-cell {
             font-size: 13px;
@@ -419,11 +467,14 @@
 
                 <!-- Filter Bar -->
                 <div class="filter-bar">
+                    <label style="font-size:11px;font-weight:700;color:var(--text-light)">Desde</label>
                     <input type="date" id="filtroDesde" title="Desde">
+                    <label style="font-size:11px;font-weight:700;color:var(--text-light)">Hasta</label>
                     <input type="date" id="filtroHasta" title="Hasta">
                     <div class="search-input">
-                        <input type="text" id="filtroBusqueda" placeholder="Buscar por cliente, Nº venta...">
+                        <input type="text" id="filtroBusqueda" placeholder="Buscar por cliente o Nº de venta...">
                     </div>
+                    <button type="button" class="btn-app btn-app-outline btn-app-sm" onclick="verTodasLasVentas()">Ver todas</button>
                 </div>
 
                 <!-- Data Table -->
@@ -683,8 +734,8 @@
     </div>
 
     <!-- Scripts -->
-    <script src="../js/api.js"></script>
-    <script src="../js/utils.js"></script>
+    <script src="../js/api.js?v=2.1.0"></script>
+    <script src="../js/utils.js?v=2.1.0"></script>
     <script>
         // ---- Estado Global ----
         let ventas = [];
@@ -696,7 +747,22 @@
         // ---- Inicialización ----
         checkSession();
         renderSidebar('ventas');
+        inicializarFiltrosVentas();
         cargarDatos();
+
+        function inicializarFiltrosVentas() {
+            const hoy = new Date();
+            const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+            document.getElementById('filtroDesde').value = inicioMes.toISOString().slice(0, 10);
+            document.getElementById('filtroHasta').value = hoy.toISOString().slice(0, 10);
+        }
+
+        function verTodasLasVentas() {
+            document.getElementById('filtroDesde').value = '';
+            document.getElementById('filtroHasta').value = '';
+            renderTabla();
+            actualizarResumen();
+        }
 
         async function cargarDatos() {
             try {
@@ -1028,6 +1094,15 @@
         }
 
         // ---- Líneas de producto ----
+        function normalizarBusquedaProducto(valor) {
+            return String(valor || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, ' ')
+                .trim();
+        }
+
         function agregarLineaProducto() {
             lineaCounter++;
             const lineId = lineaCounter;
@@ -1037,19 +1112,14 @@
             row.className = 'line-item-row';
             row.id = `lineItem_${lineId}`;
 
-            let opcionesProductos = '<option value="">Seleccionar...</option>';
-            productos.forEach(p => {
-                const id = p.id;
-                const nombre = p.nombre || `Producto #${id}`;
-                const precio = Number(p.precioVenta) || 0;
-                const stock = Number(p.stockDisponible) || 0;
-                opcionesProductos += `<option value="${id}" data-precio="${precio}" data-stock="${stock}">${escapeHtml(nombre)}</option>`;
-            });
-
             row.innerHTML = `
-                <select onchange="onProductoChange(${lineId})" id="prod_${lineId}">
-                    ${opcionesProductos}
-                </select>
+                <div class="product-picker">
+                    <input type="hidden" id="prod_${lineId}" value="">
+                    <input type="text" id="productoBuscar_${lineId}" placeholder="Buscar por nombre o código..."
+                        autocomplete="off" oninput="buscarProductosLinea(${lineId})"
+                        onfocus="buscarProductosLinea(${lineId})">
+                    <div class="product-search-results" id="resultadosProd_${lineId}"></div>
+                </div>
                 <input type="number" id="cant_${lineId}" min="1" value="1" oninput="recalcularLinea(${lineId})">
                 <input type="number" id="precio_${lineId}" min="0.01" step="any" value="0" oninput="recalcularLinea(${lineId})">
                 <div class="subtotal-cell" id="subtotalLinea_${lineId}">$ 0</div>
@@ -1060,12 +1130,65 @@
             container.appendChild(row);
         }
 
-        function onProductoChange(lineId) {
-            const select = document.getElementById(`prod_${lineId}`);
-            const option = select.options[select.selectedIndex];
-            const precio = Number(option.getAttribute('data-precio')) || 0;
+        function cerrarResultadosProductos(exceptoId = null) {
+            document.querySelectorAll('.product-search-results.show').forEach(panel => {
+                if (panel.id !== `resultadosProd_${exceptoId}`) panel.classList.remove('show');
+            });
+        }
 
-            document.getElementById(`precio_${lineId}`).value = precio;
+        function buscarProductosLinea(lineId) {
+            cerrarResultadosProductos(lineId);
+            const input = document.getElementById(`productoBuscar_${lineId}`);
+            const panel = document.getElementById(`resultadosProd_${lineId}`);
+            if (input.dataset.selectedLabel && input.value !== input.dataset.selectedLabel) {
+                document.getElementById(`prod_${lineId}`).value = '';
+                input.classList.remove('product-selected');
+                input.dataset.selectedLabel = '';
+                document.getElementById(`precio_${lineId}`).value = 0;
+                document.getElementById(`stockHint_${lineId}`).textContent = '';
+                recalcularTotales();
+            }
+            const consulta = normalizarBusquedaProducto(input.value);
+            panel.classList.add('show');
+
+            if (consulta.length < 2) {
+                panel.innerHTML = '<div class="product-search-message">Escriba al menos 2 letras del nombre o código.</div>';
+                return;
+            }
+
+            const coincidencias = productos
+                .filter(p => {
+                    const texto = normalizarBusquedaProducto(`${p.codigo || ''} ${p.nombre || ''} ${p.categoria?.nombre || ''}`);
+                    return texto.includes(consulta);
+                })
+                .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''))
+                .slice(0, 8);
+
+            if (!coincidencias.length) {
+                panel.innerHTML = '<div class="product-search-message">No se encontraron productos activos con esa búsqueda.</div>';
+                return;
+            }
+
+            panel.innerHTML = coincidencias.map(p => `
+                <button type="button" class="product-result" onclick="seleccionarProductoLinea(${lineId}, ${p.id})">
+                    <span class="product-result-name">${escapeHtml(p.nombre || `Producto #${p.id}`)}</span>
+                    <span class="product-result-meta">${escapeHtml(p.codigo || 'Sin código')} · Stock ${Number(p.stockDisponible) || 0} · ${formatCurrency(p.precioVenta)}</span>
+                </button>
+            `).join('');
+        }
+
+        function seleccionarProductoLinea(lineId, productoId) {
+            const producto = productos.find(p => Number(p.id) === Number(productoId));
+            if (!producto) return;
+
+            const oculto = document.getElementById(`prod_${lineId}`);
+            const buscador = document.getElementById(`productoBuscar_${lineId}`);
+            oculto.value = producto.id;
+            buscador.value = `${producto.nombre}${producto.codigo ? ` · ${producto.codigo}` : ''}`;
+            buscador.dataset.selectedLabel = buscador.value;
+            buscador.classList.add('product-selected');
+            document.getElementById(`resultadosProd_${lineId}`).classList.remove('show');
+            document.getElementById(`precio_${lineId}`).value = Number(producto.precioVenta) || 0;
             document.getElementById(`cant_${lineId}`).value = 1;
             recalcularLinea(lineId);
         }
@@ -1083,17 +1206,17 @@
         // Muestra el stock disponible del producto de la línea y lo marca en rojo
         // si la cantidad lo supera (en ventas el stock SÍ es un límite real).
         function actualizarStockHintVenta(lineId) {
-            const select = document.getElementById(`prod_${lineId}`);
+            const idProducto = Number(document.getElementById(`prod_${lineId}`)?.value);
             const hint = document.getElementById(`stockHint_${lineId}`);
-            if (!select || !hint) return;
+            if (!hint) return;
 
-            const option = select.options[select.selectedIndex];
-            if (!option || !option.value) {
+            const producto = productos.find(p => Number(p.id) === idProducto);
+            if (!producto) {
                 hint.textContent = '';
                 return;
             }
 
-            const stock = parseInt(option.getAttribute('data-stock')) || 0;
+            const stock = Number(producto.stockDisponible) || 0;
             const cantidad = parseInt(document.getElementById(`cant_${lineId}`).value) || 0;
 
             if (cantidad > stock) {
@@ -1398,7 +1521,12 @@
                 btn.textContent = labelBtn;
             }
         }
-    </script>
+
+        document.addEventListener('click', event => {
+            if (!event.target.closest('.product-picker')) cerrarResultadosProductos();
+        });
+
+</script>
 </body>
 
 </html>

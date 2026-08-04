@@ -113,7 +113,9 @@ public class VentaService {
 
             // Calcular valores de la línea (RF07)
             BigDecimal cantidadBD = new BigDecimal(item.getCantidad());
-            BigDecimal precioUnitario = producto.getPrecioVenta();
+            BigDecimal precioUnitario = item.getPrecioUnitario() != null && item.getPrecioUnitario().compareTo(BigDecimal.ZERO) > 0
+                    ? item.getPrecioUnitario()
+                    : producto.getPrecioVenta();
             BigDecimal costoUnitario = producto.getCostoUnitario();
 
             BigDecimal subtotalLinea = precioUnitario.multiply(cantidadBD);

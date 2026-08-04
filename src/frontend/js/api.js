@@ -61,6 +61,25 @@ const ApiClient = {
         }
     },
 
+    async requestFormData(endpoint, formData, options = {}) {
+        const url = `${API_BASE_URL}${endpoint}`;
+        const headers = { ...(options.headers || {}) };
+        const session = localStorage.getItem('emplanorte_session');
+        if (session) {
+            const { token } = JSON.parse(session);
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+        }
+        const response = await fetch(url, { ...options, headers, body: formData });
+        const text = await response.text();
+        let data;
+        try { data = JSON.parse(text); } catch (_) { data = text; }
+        if (!response.ok) {
+            const msg = typeof data === 'object' && data !== null ? (data.message || data.error || JSON.stringify(data)) : String(data || 'Error en la petición');
+            throw new Error(msg);
+        }
+        return data;
+    },
+
     // ==========================================
     // 1. MÓDULO AUTENTICACIÓN
     // ==========================================
@@ -104,6 +123,13 @@ const ApiClient = {
 
     async eliminarProducto(id) {
         return this.request(`/productos/${id}`, { method: 'DELETE' });
+    },
+
+    async fusionarProductos(productoDestinoId, productoDuplicadoId) {
+        return this.request('/productos/fusionar', {
+            method: 'POST',
+            body: JSON.stringify({ productoDestinoId, productoDuplicadoId })
+        });
     },
 
     // ==========================================
@@ -249,9 +275,47 @@ const ApiClient = {
     },
 
     // ==========================================
-    // 7. MÓDULO DASHBOARD & REPORTES (RF11, RF12)
+    // 7. MÓDULO PROVEEDORES
+    // ==========================================
+    async listarProveedores(incluirInactivos = false) { return this.request(`/proveedores?incluirInactivos=${incluirInactivos}`, { method: 'GET' }); },
+    async obtenerProveedor(id) { return this.request(`/proveedores/${id}`, { method: 'GET' }); },
+    async obtenerResumenProveedor(id) { return this.request(`/proveedores/${id}/resumen`, { method: 'GET' }); },
+    async crearProveedor(data) { return this.request('/proveedores', { method: 'POST', body: JSON.stringify(data) }); },
+    async actualizarProveedor(id, data) { return this.request(`/proveedores/${id}`, { method: 'PUT', body: JSON.stringify(data) }); },
+    async desactivarProveedor(id) { return this.request(`/proveedores/${id}`, { method: 'DELETE' }); },
+
+    // ==========================================
+    // 8. MÓDULO COMPRAS
+    // ==========================================
+    async listarCompras() { return this.request('/compras', { method: 'GET' }); },
+    async obtenerCompra(id) { return this.request(`/compras/${id}`, { method: 'GET' }); },
+    async listarDetalleCompra(id) { return this.request(`/compras/${id}/detalles`, { method: 'GET' }); },
+    async listarAuditoriaCompra(id) { return this.request(`/compras/${id}/auditoria`, { method: 'GET' }); },
+    async registrarCompra(data) { return this.request('/compras', { method: 'POST', body: JSON.stringify(data) }); },
+    async anularCompra(id, data) { return this.request(`/compras/${id}/anular`, { method: 'POST', body: JSON.stringify(data) }); },
+
+    // ==========================================
+    // 9. MÓDULO FACTURAS Y PAGOS A PROVEEDORES
+    // ==========================================
+    async listarFacturasProveedores() { return this.request('/facturas-proveedores', { method: 'GET' }); },
+    async obtenerFacturaProveedor(id) { return this.request(`/facturas-proveedores/${id}`, { method: 'GET' }); },
+    async obtenerFacturaPorCompra(idCompra) { return this.request(`/facturas-proveedores/compra/${idCompra}`, { method: 'GET' }); },
+    async listarAlertasFacturas(dias = 7) { return this.request(`/facturas-proveedores/alertas?dias=${dias}`, { method: 'GET' }); },
+    async registrarFacturaProveedor(data) { return this.request('/facturas-proveedores', { method: 'POST', body: JSON.stringify(data) }); },
+    async subirAdjuntoFactura(id, file) { const fd = new FormData(); fd.append('archivo', file); return this.requestFormData(`/facturas-proveedores/${id}/adjunto`, fd, { method: 'POST' }); },
+    urlAdjuntoFactura(id) { return `${API_BASE_URL}/facturas-proveedores/${id}/adjunto`; },
+    async listarPagosFactura(id) { return this.request(`/facturas-proveedores/${id}/pagos`, { method: 'GET' }); },
+    async registrarPagoFactura(id, data) { return this.request(`/facturas-proveedores/${id}/pagos`, { method: 'POST', body: JSON.stringify(data) }); },
+    async anularPagoProveedor(id, data) { return this.request(`/facturas-proveedores/pagos/${id}/anular`, { method: 'POST', body: JSON.stringify(data) }); },
+
+    // ==========================================
+    // 10. MÓDULO DASHBOARD & REPORTES (RF11, RF12)
     // ==========================================
     async obtenerResumenDashboard(desde, hasta) {
         return this.request(`/dashboard/resumen?desde=${desde}&hasta=${hasta}`, { method: 'GET' });
+    },
+
+    async obtenerBalanceCompleto(desde, hasta) {
+        return this.request(`/dashboard/balance-completo?desde=${desde}&hasta=${hasta}`, { method: 'GET' });
     }
 };

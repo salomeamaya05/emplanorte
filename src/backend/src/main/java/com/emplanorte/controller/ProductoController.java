@@ -1,12 +1,14 @@
 package com.emplanorte.controller;
 
 import com.emplanorte.model.Producto;
+import com.emplanorte.dto.FusionProductoRequest;
 import com.emplanorte.service.ProductoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/productos")
@@ -57,4 +59,18 @@ public class ProductoController {
             return ResponseEntity.notFound().build();
         }
     }
+
+
+    @PostMapping("/fusionar")
+    public ResponseEntity<?> fusionarProductos(@RequestBody FusionProductoRequest request) {
+        try {
+            return ResponseEntity.ok(productoService.fusionar(
+                    request.getProductoDestinoId(),
+                    request.getProductoDuplicadoId()
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
 }

@@ -11,7 +11,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Estilos -->
     <link rel="stylesheet" href="../css/styles.css">
-    <link rel="stylesheet" href="../css/app.css">
+    <link rel="stylesheet" href="../css/app.css?v=2.1.0">
+    <link rel="stylesheet" href="../css/finance.css?v=2.1.0">
 </head>
 <body class="app-body">
     <div class="app-layout">
@@ -21,6 +22,9 @@
             <div class="page-header">
                 <h1 class="page-title">Inventario</h1>
                 <div class="page-actions">
+    <button class="btn-app btn-app-outline" id="btnRevisarDuplicados" title="Detectar productos con nombres similares">
+        <span>🔎</span> Revisar Duplicados
+    </button>
     <button class="btn-app btn-app-outline" id="btnRegistrarCategoria">
         <span>🏷️</span> Registrar Categoría
     </button>
@@ -214,9 +218,30 @@
     </div>
 </div>
 
+
+    <!-- Modal: revisión segura de productos duplicados -->
+    <div class="fin-modal" id="modalDuplicados">
+        <div class="fin-modal-card">
+            <div class="fin-modal-head">
+                <div><h3>Revisar productos posiblemente duplicados</h3><div class="fin-muted" style="font-size:11px;margin-top:3px">El sistema solo sugiere coincidencias. Usted decide cuál producto conservar.</div></div>
+                <button class="fin-close" type="button" onclick="cerrarModalDuplicados()">×</button>
+            </div>
+            <div class="fin-modal-body">
+                <div class="fin-info-card">
+                    <div class="fin-info-icon">⚠️</div>
+                    <div><strong>La fusión no borra el historial.</strong><p>Se sumará el stock al producto principal, se recalculará su costo promedio y el duplicado quedará inactivo con stock cero. Las ventas y compras anteriores conservarán el nombre con el que fueron registradas.</p></div>
+                </div>
+                <div id="listaDuplicados" class="duplicate-list"></div>
+            </div>
+            <div class="fin-modal-foot">
+                <button type="button" class="fin-btn fin-btn-light" onclick="cerrarModalDuplicados()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
-    <script src="../js/api.js"></script>
-    <script src="../js/utils.js"></script>
+    <script src="../js/api.js?v=2.1.0"></script>
+    <script src="../js/utils.js?v=2.1.0"></script>
     <script>
         // ---- Estado de la página ----
         let productos = [];
@@ -554,8 +579,142 @@ async function guardarCategoria() {
         btnGuardar.textContent = 'Guardar Categoría';
     }
 }
+        const duplicadosIgnorados = new Set();
+
+        function normalizarNombreDuplicado(valor) {
+            return String(valor || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .replace(/\bmililitros?\b/g, 'ml')
+                .replace(/\blitros?\b|\blt\b/g, 'l')
+                .replace(/\bonzas?\b|\boz\b/g, 'oz')
+                .replace(/[^a-z0-9]+/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function capacidadComparable(producto) {
+            if (producto.capacidadMl !== null && producto.capacidadMl !== undefined && Number(producto.capacidadMl) > 0) {
+                return Number(producto.capacidadMl);
+            }
+            const texto = normalizarNombreDuplicado(producto.nombre);
+            const ml = texto.match(/(\d+(?:[.,]\d+)?)\s*ml\b/);
+            if (ml) return Number(ml[1].replace(',', '.'));
+            const litros = texto.match(/(\d+(?:[.,]\d+)?)\s*l\b/);
+            if (litros) return Number(litros[1].replace(',', '.')) * 1000;
+            const onzas = texto.match(/(\d+(?:[.,]\d+)?)\s*oz\b/);
+            if (onzas) return Math.round(Number(onzas[1].replace(',', '.')) * 29.5735);
+            return null;
+        }
+
+        function similitudTokens(a, b) {
+            const aa = new Set(normalizarNombreDuplicado(a).split(' ').filter(Boolean));
+            const bb = new Set(normalizarNombreDuplicado(b).split(' ').filter(Boolean));
+            if (!aa.size || !bb.size) return 0;
+            const inter = [...aa].filter(x => bb.has(x)).length;
+            const union = new Set([...aa, ...bb]).size;
+            return inter / union;
+        }
+
+        function detectarDuplicados() {
+            const sugerencias = [];
+            for (let i = 0; i < productos.length; i++) {
+                for (let j = i + 1; j < productos.length; j++) {
+                    const a = productos[i], b = productos[j];
+                    const clave = [Math.min(a.id, b.id), Math.max(a.id, b.id)].join('-');
+                    if (duplicadosIgnorados.has(clave)) continue;
+
+                    const categoriaA = a.categoria?.id || null;
+                    const categoriaB = b.categoria?.id || null;
+                    if (categoriaA && categoriaB && categoriaA !== categoriaB) continue;
+
+                    const capA = capacidadComparable(a), capB = capacidadComparable(b);
+                    if (capA !== null && capB !== null && Math.abs(capA - capB) > 2) continue;
+
+                    const na = normalizarNombreDuplicado(a.nombre);
+                    const nb = normalizarNombreDuplicado(b.nombre);
+                    const similitud = similitudTokens(na, nb);
+                    const contiene = na.length >= 5 && nb.length >= 5 && (na.includes(nb) || nb.includes(na));
+                    if (na === nb || contiene || similitud >= 0.62) {
+                        sugerencias.push({ a, b, similitud: na === nb ? 1 : similitud });
+                    }
+                }
+            }
+            return sugerencias.sort((x, y) => y.similitud - x.similitud);
+        }
+
+        function abrirModalDuplicados() {
+            renderizarDuplicados();
+            document.getElementById('modalDuplicados').classList.add('show');
+        }
+
+        function cerrarModalDuplicados() {
+            document.getElementById('modalDuplicados').classList.remove('show');
+        }
+
+        function descripcionProductoDuplicado(p) {
+            return `${escapeHtml(p.codigo || 'Sin código')} · ${escapeHtml(p.categoria?.nombre || 'Sin categoría')} · Stock ${Number(p.stockDisponible) || 0} · Costo ${formatCurrency(p.costoUnitario)}`;
+        }
+
+        function nombreCortoProducto(p) {
+            const nombre = String(p.nombre || `Producto ${p.id}`);
+            return nombre.length > 28 ? nombre.slice(0, 25) + '…' : nombre;
+        }
+
+        function renderizarDuplicados() {
+            const lista = document.getElementById('listaDuplicados');
+            const sugerencias = detectarDuplicados();
+            if (!sugerencias.length) {
+                lista.innerHTML = '<div class="fin-empty"><div class="fin-empty-icon">✅</div>No se encontraron coincidencias claras entre los productos activos.</div>';
+                return;
+            }
+
+            lista.innerHTML = sugerencias.map(({a, b, similitud}) => `
+                <div class="duplicate-card" id="dup_${a.id}_${b.id}">
+                    <div class="duplicate-grid">
+                        <div class="duplicate-product"><h4>${escapeHtml(a.nombre)}</h4><div class="duplicate-meta">${descripcionProductoDuplicado(a)}</div></div>
+                        <div class="duplicate-arrow">⇄</div>
+                        <div class="duplicate-product"><h4>${escapeHtml(b.nombre)}</h4><div class="duplicate-meta">${descripcionProductoDuplicado(b)}</div></div>
+                    </div>
+                    <div class="fin-help" style="text-align:center;margin-top:7px">Coincidencia estimada: ${Math.round(similitud * 100)} %. Verifique físicamente que sean el mismo producto.</div>
+                    <div class="duplicate-actions">
+                        <button type="button" class="fin-btn fin-btn-primary fin-btn-sm" onclick="fusionarSugerencia(${a.id}, ${b.id})">Conservar “${escapeHtml(nombreCortoProducto(a))}”</button>
+                        <button type="button" class="fin-btn fin-btn-primary fin-btn-sm" onclick="fusionarSugerencia(${b.id}, ${a.id})">Conservar “${escapeHtml(nombreCortoProducto(b))}”</button>
+                        <button type="button" class="fin-btn fin-btn-light fin-btn-sm" onclick="ignorarSugerencia(${a.id}, ${b.id})">No son duplicados</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function ignorarSugerencia(a, b) {
+            duplicadosIgnorados.add([Math.min(a, b), Math.max(a, b)].join('-'));
+            renderizarDuplicados();
+        }
+
+        async function fusionarSugerencia(destinoId, duplicadoId) {
+            const destino = productos.find(p => Number(p.id) === Number(destinoId));
+            const duplicado = productos.find(p => Number(p.id) === Number(duplicadoId));
+            if (!destino || !duplicado) return;
+
+            const mensaje = `Se conservará "${destino.nombre}" y se desactivará "${duplicado.nombre}".\n\n` +
+                `Stock resultante: ${(Number(destino.stockDisponible)||0) + (Number(duplicado.stockDisponible)||0)} unidades.\n` +
+                'El costo se recalculará por promedio ponderado y el historial anterior no se borrará.\n\n¿Confirma que físicamente son el mismo producto?';
+            if (!confirm(mensaje)) return;
+
+            try {
+                await ApiClient.fusionarProductos(destinoId, duplicadoId);
+                showToast('Productos fusionados correctamente', 'success');
+                await cargarDatos();
+                renderizarDuplicados();
+            } catch (err) {
+                showToast(err.message || 'No fue posible fusionar los productos', 'error');
+            }
+        }
+
         // ---- Event Listeners ----
         document.getElementById('btnAgregarProducto').addEventListener('click', abrirModalAgregar);
+        document.getElementById('btnRevisarDuplicados').addEventListener('click', abrirModalDuplicados);
         document.getElementById('btnEmptyAdd').addEventListener('click', abrirModalAgregar);
         document.getElementById('btnRegistrarCategoria').addEventListener('click', abrirModalCategoria);
         document.getElementById('btnCerrarModalCategoria').addEventListener('click', cerrarModalCategoria);
