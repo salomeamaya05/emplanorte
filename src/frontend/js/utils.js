@@ -170,7 +170,7 @@ function renderSidebar(activePage) {
             <button class="btn-logout" id="btnLogout">
                 <span>🚪</span> Cerrar Sesión
             </button>
-            <div class="sidebar-version">v2.1.0</div>
+            <div class="sidebar-version">v2.2.1</div>
         </div>
     </aside>
     `;
@@ -243,4 +243,323 @@ function closeModal(modalId) {
 // ---- Limpiar formulario ----
 function resetForm(formId) {
     document.getElementById(formId).reset();
+}
+
+// ============================================================
+// SELECTOR BUSCABLE REUTILIZABLE - EMPLANORTE v2.2
+// ============================================================
+function normalizeSearchableText(value) {
+    return String(value == null ? '' : value)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function escapeSearchableHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>'"]/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+    }[c]));
+}
+
+/**
+ * Convierte un <select> existente en un buscador con autocompletado.
+ * El select original sigue almacenando el ID y conserva compatibilidad
+ * con el código existente. El componente solo cambia la interfaz.
+ */
+
+function ensureSearchableSelectStyles() {
+    if (document.getElementById('emplanorte-searchable-select-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'emplanorte-searchable-select-styles';
+    style.textContent = `
+      .searchable-select{position:relative;width:100%}
+      .searchable-select-native{display:none!important}
+      .searchable-select-control{position:relative;display:flex;align-items:center}
+      .searchable-select-input{box-sizing:border-box;width:100%;min-height:38px;padding:8px 42px 8px 11px;border:1px solid #dce3eb;border-radius:8px;background:#fff;color:#1f2937;font:inherit;outline:none}
+      .searchable-select-input:focus{border-color:#3182ce;box-shadow:0 0 0 3px rgba(49,130,206,.14)}
+      .searchable-select-input.is-selected{background:#f5fbf7;border-color:#8dc9a1}
+      .searchable-select-input.is-invalid{border-color:#dc3545;box-shadow:0 0 0 3px rgba(220,53,69,.10)}
+      .searchable-select-clear{position:absolute;right:8px;width:27px;height:27px;border:0;border-radius:50%;background:transparent;color:#8492a6;font-size:18px;line-height:1;cursor:pointer;display:none;align-items:center;justify-content:center}
+      .searchable-select.has-value .searchable-select-clear{display:flex}
+      .searchable-select-results{position:absolute;z-index:10050;left:0;right:0;top:calc(100% + 5px);display:none;max-height:260px;overflow-y:auto;border:1px solid #d8e1eb;border-radius:10px;background:#fff;box-shadow:0 14px 32px rgba(26,45,68,.18);padding:5px}
+      .searchable-select.open .searchable-select-results{display:block}
+      .searchable-select-option{width:100%;border:0;border-radius:7px;background:transparent;color:#1f2937;text-align:left;padding:9px 10px;cursor:pointer;display:flex;flex-direction:column;gap:3px;font:inherit}
+      .searchable-select-option:hover,.searchable-select-option.active{background:#edf6ff}
+      .searchable-select-option-title{font-size:13px;font-weight:650;line-height:1.25}
+      .searchable-select-option-meta{color:#6f8094;font-size:11px;line-height:1.3}
+      .searchable-select-message{padding:10px;color:#7b8b9f;font-size:12px;text-align:center}
+      .searchable-select-error{display:none;color:#dc3545;font-size:11px;margin-top:4px}
+      .searchable-select.invalid .searchable-select-error{display:block}
+    `;
+    document.head.appendChild(style);
+}
+
+function enhanceSearchableSelect(selectOrId, config = {}) {
+    ensureSearchableSelectStyles();
+    const select = typeof selectOrId === 'string'
+        ? document.getElementById(selectOrId)
+        : selectOrId;
+    if (!select) return null;
+
+    if (select._searchableSelect) {
+        select._searchableSelect.updateConfig(config);
+        select._searchableSelect.refresh();
+        return select._searchableSelect;
+    }
+
+    const originalRequired = select.required;
+    select.required = false;
+    select.classList.add('searchable-select-native');
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'searchable-select';
+    const control = document.createElement('div');
+    control.className = 'searchable-select-control';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'searchable-select-input';
+    input.autocomplete = 'off';
+    input.spellcheck = false;
+    input.required = originalRequired;
+    const clear = document.createElement('button');
+    clear.type = 'button';
+    clear.className = 'searchable-select-clear';
+    clear.setAttribute('aria-label', 'Limpiar selección');
+    clear.textContent = '×';
+    const results = document.createElement('div');
+    results.className = 'searchable-select-results';
+    results.setAttribute('role', 'listbox');
+    const error = document.createElement('div');
+    error.className = 'searchable-select-error';
+    error.textContent = 'Seleccione una opción válida.';
+
+    select.parentNode.insertBefore(wrapper, select);
+    wrapper.appendChild(select);
+    wrapper.appendChild(control);
+    control.appendChild(input);
+    control.appendChild(clear);
+    wrapper.appendChild(results);
+    wrapper.appendChild(error);
+
+    let cfg = {};
+    let activeIndex = -1;
+    let visibleOptions = [];
+    let selectedLabel = '';
+
+    function updateConfig(next = {}) {
+        cfg = Object.assign({
+            placeholder: 'Escriba para buscar...',
+            minChars: 1,
+            maxResults: 8,
+            emptyMessage: 'No se encontraron resultados.',
+            promptMessage: 'Escriba para buscar.',
+            optionLabel: option => option.textContent.trim(),
+            optionSearchText: option => `${option.textContent} ${option.dataset.search || ''}`,
+            optionMeta: option => option.dataset.meta || '',
+            onSelect: null,
+            onClear: null
+        }, cfg, next);
+        input.placeholder = cfg.placeholder;
+    }
+
+    function allOptions() {
+        return Array.from(select.options).filter(option => String(option.value || '').trim() !== '');
+    }
+
+    function getLabel(option) {
+        return option ? String(cfg.optionLabel(option) || '').trim() : '';
+    }
+
+    function closeResults() {
+        wrapper.classList.remove('open');
+        activeIndex = -1;
+    }
+
+    function setInvalid(invalid) {
+        wrapper.classList.toggle('invalid', Boolean(invalid));
+        input.classList.toggle('is-invalid', Boolean(invalid));
+        input.setCustomValidity(invalid ? 'Seleccione una opción válida.' : '');
+    }
+
+    function clearSelection({ dispatch = true, keepText = false } = {}) {
+        select.value = '';
+        selectedLabel = '';
+        input.dataset.selectedValue = '';
+        input.classList.remove('is-selected');
+        wrapper.classList.remove('has-value');
+        if (!keepText) input.value = '';
+        setInvalid(false);
+        if (dispatch) select.dispatchEvent(new Event('change', { bubbles: true }));
+        if (typeof cfg.onClear === 'function') cfg.onClear(select);
+    }
+
+    function selectOption(option, { dispatch = true } = {}) {
+        if (!option) return;
+        select.value = option.value;
+        selectedLabel = getLabel(option);
+        input.value = selectedLabel;
+        input.dataset.selectedValue = String(option.value);
+        input.classList.add('is-selected');
+        wrapper.classList.add('has-value');
+        setInvalid(false);
+        closeResults();
+        if (dispatch) select.dispatchEvent(new Event('change', { bubbles: true }));
+        if (typeof cfg.onSelect === 'function') cfg.onSelect(option, select);
+    }
+
+    function renderResults() {
+        const query = normalizeSearchableText(input.value);
+        activeIndex = -1;
+        visibleOptions = [];
+        results.innerHTML = '';
+
+        if (query.length < Number(cfg.minChars || 0)) {
+            results.innerHTML = `<div class="searchable-select-message">${escapeSearchableHtml(cfg.promptMessage)}</div>`;
+            wrapper.classList.add('open');
+            return;
+        }
+
+        visibleOptions = allOptions()
+            .filter(option => normalizeSearchableText(cfg.optionSearchText(option)).includes(query))
+            .slice(0, Number(cfg.maxResults || 8));
+
+        if (!visibleOptions.length) {
+            results.innerHTML = `<div class="searchable-select-message">${escapeSearchableHtml(cfg.emptyMessage)}</div>`;
+            wrapper.classList.add('open');
+            return;
+        }
+
+        visibleOptions.forEach((option, index) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'searchable-select-option';
+            button.dataset.index = String(index);
+            const title = document.createElement('span');
+            title.className = 'searchable-select-option-title';
+            title.textContent = getLabel(option);
+            button.appendChild(title);
+            const metaText = String(cfg.optionMeta(option) || '').trim();
+            if (metaText) {
+                const meta = document.createElement('span');
+                meta.className = 'searchable-select-option-meta';
+                meta.textContent = metaText;
+                button.appendChild(meta);
+            }
+            button.addEventListener('mousedown', event => event.preventDefault());
+            button.addEventListener('click', () => selectOption(option));
+            results.appendChild(button);
+        });
+        wrapper.classList.add('open');
+    }
+
+    function setActive(index) {
+        const buttons = Array.from(results.querySelectorAll('.searchable-select-option'));
+        buttons.forEach(btn => btn.classList.remove('active'));
+        if (!buttons.length) return;
+        activeIndex = (index + buttons.length) % buttons.length;
+        buttons[activeIndex].classList.add('active');
+        buttons[activeIndex].scrollIntoView({ block: 'nearest' });
+    }
+
+    function syncFromSelect() {
+        const option = select.selectedOptions && select.selectedOptions[0];
+        if (option && option.value) selectOption(option, { dispatch: false });
+        else clearSelection({ dispatch: false });
+    }
+
+    function refresh() {
+        const currentValue = select.value;
+        if (currentValue) {
+            const option = allOptions().find(item => String(item.value) === String(currentValue));
+            if (option) selectOption(option, { dispatch: false });
+            else clearSelection({ dispatch: false });
+        } else if (input.value && !selectedLabel) {
+            renderResults();
+        }
+    }
+
+    input.addEventListener('focus', () => renderResults());
+    input.addEventListener('input', () => {
+        if (selectedLabel && input.value !== selectedLabel) {
+            select.value = '';
+            selectedLabel = '';
+            input.dataset.selectedValue = '';
+            input.classList.remove('is-selected');
+            wrapper.classList.remove('has-value');
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        setInvalid(Boolean(input.value.trim()) && !select.value);
+        renderResults();
+    });
+    input.addEventListener('keydown', event => {
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            if (!wrapper.classList.contains('open')) renderResults();
+            setActive(activeIndex + 1);
+        } else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            setActive(activeIndex - 1);
+        } else if (event.key === 'Enter' && wrapper.classList.contains('open')) {
+            const option = visibleOptions[activeIndex >= 0 ? activeIndex : 0];
+            if (option) {
+                event.preventDefault();
+                selectOption(option);
+            }
+        } else if (event.key === 'Escape') {
+            closeResults();
+        }
+    });
+    input.addEventListener('blur', () => {
+        setTimeout(() => {
+            closeResults();
+            if (input.value.trim() && !select.value) setInvalid(true);
+        }, 120);
+    });
+    clear.addEventListener('click', () => {
+        clearSelection();
+        input.focus();
+        renderResults();
+    });
+    select.addEventListener('change', () => {
+        const option = select.selectedOptions && select.selectedOptions[0];
+        if (option && option.value) {
+            selectedLabel = getLabel(option);
+            input.value = selectedLabel;
+            input.dataset.selectedValue = String(option.value);
+            input.classList.add('is-selected');
+            wrapper.classList.add('has-value');
+            setInvalid(false);
+        } else if (!document.activeElement || document.activeElement !== input) {
+            clearSelection({ dispatch: false });
+        }
+    });
+    document.addEventListener('click', event => {
+        if (!wrapper.contains(event.target)) closeResults();
+    });
+
+    updateConfig(config);
+    const api = {
+        select,
+        input,
+        wrapper,
+        refresh,
+        syncFromSelect,
+        clear: clearSelection,
+        setValue(value, options = {}) {
+            select.value = value == null ? '' : String(value);
+            syncFromSelect();
+            if (options.dispatch) select.dispatchEvent(new Event('change', { bubbles: true }));
+        },
+        updateConfig
+    };
+    select._searchableSelect = api;
+    syncFromSelect();
+    return api;
+}
+
+function syncSearchableSelect(selectOrId) {
+    const select = typeof selectOrId === 'string' ? document.getElementById(selectOrId) : selectOrId;
+    if (select && select._searchableSelect) select._searchableSelect.syncFromSelect();
 }

@@ -10,9 +10,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Estilos -->
-    <link rel="stylesheet" href="../css/styles.css">
-    <link rel="stylesheet" href="../css/app.css?v=2.1.0">
-    <link rel="stylesheet" href="../css/finance.css?v=2.1.0">
+    <link rel="stylesheet" href="../css/styles.css?v=2.2.1">
+    <link rel="stylesheet" href="../css/app.css?v=2.2.1">
+    <link rel="stylesheet" href="../css/finance.css?v=2.2.1">
 </head>
 <body class="app-body">
     <div class="app-layout">
@@ -240,8 +240,8 @@
     </div>
 
     <!-- Scripts -->
-    <script src="../js/api.js?v=2.1.0"></script>
-    <script src="../js/utils.js?v=2.1.0"></script>
+    <script src="../js/api.js?v=2.2.1"></script>
+    <script src="../js/utils.js?v=2.2.1"></script>
     <script>
         // ---- Estado de la página ----
         let productos = [];
@@ -292,12 +292,21 @@
         function poblarSelectCategoriaModal() {
             const select = document.getElementById('categoriaSelect');
             select.innerHTML = '<option value="">Seleccionar categoría</option>';
-            categorias.forEach(cat => {
-                const opt = document.createElement('option');
-                opt.value = cat.id;
-                opt.textContent = cat.nombre;
-                select.appendChild(opt);
-            });
+            categorias
+                .filter(cat => cat.activo !== false)
+                .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''))
+                .forEach(cat => {
+                    const opt = document.createElement('option');
+                    opt.value = cat.id;
+                    opt.textContent = cat.nombre;
+                    select.appendChild(opt);
+                });
+            enhanceSearchableSelect(select, {
+                placeholder: 'Buscar categoría...',
+                minChars: 1,
+                maxResults: 8,
+                promptMessage: 'Escriba el nombre de la categoría.'
+            }).refresh();
         }
 
         // ---- Obtener categorías únicas de los productos ----
@@ -437,6 +446,7 @@ function obtenerCapacidadOrden(producto) {
             document.getElementById('modalTitle').textContent = 'Agregar Producto';
             document.getElementById('btnGuardar').textContent = 'Guardar Producto';
             resetForm('formProducto');
+            syncSearchableSelect('categoriaSelect');
             document.getElementById('productoId').value = '';
             openModal('modalProducto');
         }
@@ -453,6 +463,7 @@ function obtenerCapacidadOrden(producto) {
                 document.getElementById('nombre').value = producto.nombre || '';
                 document.getElementById('descripcion').value = producto.descripcion || '';
                 document.getElementById('categoriaSelect').value = producto.categoria ? producto.categoria.id : '';
+                syncSearchableSelect('categoriaSelect');
                 document.getElementById('capacidadMl').value = producto.capacidadMl || '';
                 document.getElementById('costoUnitario').value = producto.costoUnitario || '';
                 document.getElementById('precioVenta').value = producto.precioVenta || '';

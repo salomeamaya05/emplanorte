@@ -897,3 +897,232 @@ a { text-decoration: none; color: inherit; }
         align-items: stretch;
     }
 }
+
+/* ============================================================
+   SELECTOR BUSCABLE REUTILIZABLE - EMPLANORTE v2.2
+   Para clientes, productos, proveedores, compras y categorías.
+   ============================================================ */
+.searchable-select {
+    position: relative;
+    width: 100%;
+}
+.searchable-select-native {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+.searchable-select-control {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.searchable-select-input {
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 42px 8px 11px;
+    border: 1px solid var(--card-border, #dce3eb);
+    border-radius: var(--radius-sm, 8px);
+    background: #fff;
+    color: var(--text-dark, #1f2937);
+    font: inherit;
+    outline: none;
+    transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.searchable-select-input:focus {
+    border-color: var(--primary, #3182ce);
+    box-shadow: 0 0 0 3px rgba(49, 130, 206, .14);
+}
+.searchable-select-input.is-selected {
+    background: #f5fbf7;
+    border-color: #8dc9a1;
+}
+.searchable-select-input.is-invalid {
+    border-color: var(--danger, #dc3545);
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, .10);
+}
+.searchable-select-clear {
+    position: absolute;
+    right: 8px;
+    width: 27px;
+    height: 27px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #8492a6;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+.searchable-select.has-value .searchable-select-clear { display: flex; }
+.searchable-select-clear:hover { background: #edf2f7; color: #26374a; }
+.searchable-select-results {
+    position: absolute;
+    z-index: 10050;
+    left: 0;
+    right: 0;
+    top: calc(100% + 5px);
+    display: none;
+    max-height: 260px;
+    overflow-y: auto;
+    border: 1px solid #d8e1eb;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 14px 32px rgba(26, 45, 68, .18);
+    padding: 5px;
+}
+.searchable-select.open .searchable-select-results { display: block; }
+.searchable-select-option {
+    width: 100%;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text-dark, #1f2937);
+    text-align: left;
+    padding: 9px 10px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font: inherit;
+}
+.searchable-select-option:hover,
+.searchable-select-option.active {
+    background: #edf6ff;
+}
+.searchable-select-option-title {
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.25;
+}
+.searchable-select-option-meta {
+    color: #6f8094;
+    font-size: 11px;
+    line-height: 1.3;
+}
+.searchable-select-message {
+    padding: 10px;
+    color: #7b8b9f;
+    font-size: 12px;
+    text-align: center;
+}
+.searchable-select-error {
+    display: none;
+    color: var(--danger, #dc3545);
+    font-size: 11px;
+    margin-top: 4px;
+}
+.searchable-select.invalid .searchable-select-error { display: block; }
+@media (max-width: 680px) {
+    .searchable-select-results { max-height: 220px; }
+}
+
+/* ============================================================
+   COTIZACIÓN PARA CLIENTE - VISTA, IMAGEN Y PDF
+   ============================================================ */
+.quote-share-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 12000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(15, 28, 45, .72);
+}
+.quote-share-modal.show { display: flex; }
+.quote-share-card {
+    width: min(930px, 100%);
+    max-height: calc(100vh - 40px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 16px;
+    background: #eef3f8;
+    box-shadow: 0 25px 70px rgba(0,0,0,.3);
+}
+.quote-share-head,
+.quote-share-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    background: #fff;
+}
+.quote-share-head { justify-content: space-between; border-bottom: 1px solid #dce5ee; }
+.quote-share-head h3 { margin: 0; color: #213247; font-size: 18px; }
+.quote-share-close {
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 50%;
+    background: #edf2f7;
+    color: #556579;
+    cursor: pointer;
+    font-size: 22px;
+}
+.quote-share-body { overflow: auto; padding: 22px; }
+.quote-share-actions {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    border-top: 1px solid #dce5ee;
+}
+.quote-client-document {
+    width: min(760px, 100%);
+    margin: 0 auto;
+    background: #fff;
+    color: #203047;
+    border-radius: 8px;
+    box-shadow: 0 8px 28px rgba(22, 43, 67, .12);
+    overflow: hidden;
+}
+.quote-doc-band { height: 10px; background: linear-gradient(90deg, #0b2b83 0 68%, #98bd24 68% 100%); }
+.quote-doc-content { padding: 34px 38px 30px; }
+.quote-doc-header { display:flex; justify-content:space-between; gap:24px; align-items:flex-start; }
+.quote-doc-brand img { width: 205px; max-height: 116px; object-fit: contain; object-position: left center; }
+.quote-doc-title { text-align:right; }
+.quote-doc-title h2 { margin:0 0 8px; color:#0b2b83; font-size:27px; letter-spacing:.5px; }
+.quote-doc-title strong { display:block; font-size:15px; }
+.quote-doc-title span { display:block; margin-top:5px; color:#6f8094; font-size:12px; }
+.quote-doc-customer {
+    margin-top: 24px;
+    padding: 16px 18px;
+    border-left: 5px solid #98bd24;
+    background: #f5f8fb;
+    border-radius: 7px;
+}
+.quote-doc-customer small { display:block; color:#718096; font-size:10px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; }
+.quote-doc-customer strong { display:block; margin-top:4px; font-size:17px; }
+.quote-doc-customer span { display:block; margin-top:3px; color:#66778a; font-size:12px; }
+.quote-doc-table { width:100%; margin-top:22px; border-collapse:collapse; }
+.quote-doc-table th { padding:10px 9px; background:#0b2b83; color:#fff; font-size:10px; letter-spacing:.5px; text-transform:uppercase; text-align:left; }
+.quote-doc-table th:nth-child(n+2), .quote-doc-table td:nth-child(n+2) { text-align:right; }
+.quote-doc-table td { padding:11px 9px; border-bottom:1px solid #e6edf4; font-size:12px; vertical-align:top; }
+.quote-doc-product { font-weight:650; }
+.quote-doc-code { display:block; color:#8391a2; font-size:10px; margin-top:2px; }
+.quote-doc-totals { width:min(340px,100%); margin:18px 0 0 auto; }
+.quote-doc-total-row { display:flex; justify-content:space-between; gap:20px; padding:6px 0; font-size:13px; }
+.quote-doc-total-row.final { margin-top:5px; padding-top:11px; border-top:2px solid #98bd24; color:#0b2b83; font-size:18px; font-weight:800; }
+.quote-doc-notes { margin-top:22px; padding:13px 15px; border:1px solid #dce5ee; border-radius:7px; color:#56677a; font-size:11px; line-height:1.5; }
+.quote-doc-footer { margin-top:24px; padding-top:15px; border-top:1px solid #dfe7ef; display:flex; justify-content:space-between; gap:18px; color:#718096; font-size:10px; line-height:1.5; }
+.quote-doc-thanks { color:#0b2b83; font-weight:700; }
+@media (max-width: 680px) {
+    .quote-share-modal { padding: 0; }
+    .quote-share-card { height:100vh; max-height:none; border-radius:0; }
+    .quote-share-body { padding:12px; }
+    .quote-doc-content { padding:24px 20px; }
+    .quote-doc-header { flex-direction:column; }
+    .quote-doc-title { text-align:left; }
+    .quote-doc-brand img { width:180px; }
+    .quote-share-actions .btn-app { flex:1 1 140px; justify-content:center; }
+}

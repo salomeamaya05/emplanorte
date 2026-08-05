@@ -12,19 +12,15 @@ fi
 echo "[2/5] Validando JavaScript compartido..."
 node --check src/frontend/js/api.js
 node --check src/frontend/js/utils.js
+node --check src/frontend/js/quote-export.js
 
 echo "[3/5] Validando JavaScript embebido..."
 python3 - <<'PY'
 from pathlib import Path
 import re, subprocess, tempfile
-pages = [
-  'src/frontend/pages/proveedores.html',
-  'src/frontend/pages/compras.html',
-  'src/frontend/pages/facturas-proveedores.html',
-  'src/frontend/pages/dashboard.html',
-]
+pages = sorted(Path('src/frontend/pages').glob('*.html'))
 for page in pages:
-    text=Path(page).read_text(encoding='utf-8')
+    text=page.read_text(encoding='utf-8')
     scripts=re.findall(r'<script(?:\s[^>]*)?>(.*?)</script>', text, re.S|re.I)
     code='\n'.join(scripts)
     if not code.strip():
@@ -35,6 +31,7 @@ for page in pages:
     Path(name).unlink(missing_ok=True)
     print('  OK',page)
 PY
+
 
 echo "[4/5] Revisando IDs HTML duplicados..."
 python3 - <<'PY'

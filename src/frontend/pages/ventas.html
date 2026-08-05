@@ -11,8 +11,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Estilos -->
-    <link rel="stylesheet" href="../css/styles.css">
-    <link rel="stylesheet" href="../css/app.css">
+    <link rel="stylesheet" href="../css/styles.css?v=2.2.1">
+    <link rel="stylesheet" href="../css/app.css?v=2.2.1">
     <style>
         /* Estilos específicos para líneas de producto en el modal de venta */
         .line-items-container {
@@ -734,8 +734,8 @@
     </div>
 
     <!-- Scripts -->
-    <script src="../js/api.js?v=2.1.0"></script>
-    <script src="../js/utils.js?v=2.1.0"></script>
+    <script src="../js/api.js?v=2.2.1"></script>
+    <script src="../js/utils.js?v=2.2.1"></script>
     <script>
         // ---- Estado Global ----
         let ventas = [];
@@ -944,14 +944,22 @@
             document.getElementById('ventaDescuento').value = '0';
             lineaCounter = 0;
 
-            // Poblar select de clientes
+            // Poblar cliente y convertirlo en buscador (el ID real sigue en el select oculto).
             const selectCliente = document.getElementById('ventaCliente');
             selectCliente.innerHTML = '<option value="">Seleccionar cliente...</option>';
             clientes.forEach(c => {
                 const id = c.id;
                 const nombre = c.nombre || `Cliente #${id}`;
-                selectCliente.innerHTML += `<option value="${id}">${escapeHtml(nombre)}</option>`;
+                const documento = c.documento || c.numeroDocumento || c.identificacion || '';
+                const telefono = c.telefono || '';
+                selectCliente.innerHTML += `<option value="${id}" data-search="${escapeHtml(`${documento} ${telefono}`)}" data-meta="${escapeHtml([documento && `Doc. ${documento}`, telefono].filter(Boolean).join(' · '))}">${escapeHtml(nombre)}</option>`;
             });
+            enhanceSearchableSelect(selectCliente, {
+                placeholder: 'Buscar cliente por nombre o documento...',
+                minChars: 1,
+                maxResults: 8,
+                promptMessage: 'Escriba el nombre o documento del cliente.'
+            }).clear({ dispatch: false });
 
             // Agregar primera línea de producto
             agregarLineaProducto();

@@ -10,9 +10,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Estilos -->
-    <link rel="stylesheet" href="../css/styles.css">
-    <link rel="stylesheet" href="../css/app.css">
+    <link rel="stylesheet" href="../css/styles.css?v=2.2.1">
+    <link rel="stylesheet" href="../css/app.css?v=2.2.1">
     <style>
+        
         /* Line-items table inside modal */
         .line-items-table {
             width: 100%;
@@ -146,6 +147,90 @@
         }
         .data-table .btn-convertir {
             white-space: nowrap;
+        }
+
+        /* Acciones compactas e intuitivas para cotizaciones */
+        .quote-actions-cell {
+            white-space: nowrap;
+        }
+        .quote-actions {
+            display: inline-flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 6px;
+            flex-wrap: nowrap;
+        }
+        .quote-icon-btn {
+            width: 34px;
+            height: 34px;
+            min-width: 34px;
+            padding: 0;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+        }
+        .quote-icon-btn svg {
+            width: 17px;
+            height: 17px;
+            stroke-width: 2;
+            pointer-events: none;
+        }
+        .quote-icon-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 12px rgba(15, 23, 42, 0.14);
+        }
+        .quote-icon-btn:focus-visible {
+            outline: 3px solid rgba(49, 130, 206, 0.25);
+            outline-offset: 2px;
+        }
+        .quote-icon-btn-share {
+            color: #1d4ed8;
+            background: #eaf2ff;
+            border-color: #cfe0ff;
+        }
+        .quote-icon-btn-share:hover {
+            background: #dce9ff;
+        }
+        .quote-icon-btn-edit {
+            color: #b45309;
+            background: #fff7e6;
+            border-color: #fde2ad;
+        }
+        .quote-icon-btn-edit:hover {
+            background: #ffefcc;
+        }
+        .quote-icon-btn-convert {
+            color: #15803d;
+            background: #eaf8ef;
+            border-color: #ccebd6;
+        }
+        .quote-icon-btn-convert:hover {
+            background: #dcf4e5;
+        }
+        .quote-icon-btn-delete {
+            color: #c62828;
+            background: #fff0f0;
+            border-color: #ffd3d3;
+        }
+        .quote-icon-btn-delete:hover {
+            background: #ffe3e3;
+        }
+        @media (max-width: 768px) {
+            .quote-icon-btn {
+                width: 32px;
+                height: 32px;
+                min-width: 32px;
+                border-radius: 9px;
+            }
+            .quote-icon-btn svg {
+                width: 16px;
+                height: 16px;
+            }
         }
         /* Pasarela de pago simulada */
         .pago-badge {
@@ -326,8 +411,8 @@
                             <span id="displaySubtotal">$ 0</span>
                         </div>
                         <div class="total-row">
-                            <label>Descuento (%):</label>
-                            <input type="number" id="inputDescuento" value="0" min="0" max="100" step="0.01" oninput="recalcularTotales()">
+                            <label>Descuento ($):</label>
+                            <input type="number" id="inputDescuento" value="0" min="0" step="1" oninput="recalcularTotales()">
                         </div>
                         <div class="total-row total-final">
                             <label>Total:</label>
@@ -464,9 +549,13 @@
     </div>
 
     <!-- Scripts -->
-    <script src="../js/api.js?v=2.1.0"></script>
-    <script src="../js/utils.js?v=2.1.0"></script>
+    <script src="../js/vendor/jspdf.umd.min.js"></script>
+    <script src="../js/api.js?v=2.2.1"></script>
+    <script src="../js/utils.js?v=2.2.1"></script>
+    <script src="../js/quote-export.js?v=2.2.1"></script>
     <script>
+        console.info('EMPLANORTE Cotizaciones v2.2.1 cargado');
+
         // ---- Estado global ----
         let cotizaciones = [];
         let clientes = [];
@@ -543,19 +632,60 @@
                         <td class="text-right">${formatCurrency(descuento)}</td>
                         <td class="text-right fw-bold">${formatCurrency(total)}</td>
                         <td><span class="badge ${badgeClass}">${estadoLabel}</span></td>
-                        <td>
-                            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                        <td class="quote-actions-cell">
+                            <div class="quote-actions" role="group" aria-label="Acciones de la cotización ${escapeHtml(String(numCotizacion))}">
+                                <button
+                                    type="button"
+                                    class="quote-icon-btn quote-icon-btn-share"
+                                    onclick="abrirCotizacionCliente(${c.id})"
+                                    title="Descargar o compartir cotización"
+                                    aria-label="Descargar o compartir cotización ${escapeHtml(String(numCotizacion))}">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M12 3v12"></path>
+                                        <path d="m7 10 5 5 5-5"></path>
+                                        <path d="M5 21h14"></path>
+                                    </svg>
+                                </button>
                                 ${puedeConvertir
-    ? `<button class="btn-app btn-app-outline btn-app-sm" onclick="abrirModalEditar(${c.id})">
-           Editar
+    ? `<button
+           type="button"
+           class="quote-icon-btn quote-icon-btn-edit"
+           onclick="abrirModalEditar(${c.id})"
+           title="Editar cotización"
+           aria-label="Editar cotización ${escapeHtml(String(numCotizacion))}">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+               <path d="M12 20h9"></path>
+               <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"></path>
+           </svg>
        </button>
-       <button class="btn-app btn-app-success btn-app-sm btn-convertir" onclick="abrirModalConvertir(${c.id})">
-           Convertir a Venta
+       <button
+           type="button"
+           class="quote-icon-btn quote-icon-btn-convert"
+           onclick="abrirModalConvertir(${c.id})"
+           title="Convertir a venta"
+           aria-label="Convertir cotización ${escapeHtml(String(numCotizacion))} a venta">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+               <circle cx="9" cy="20" r="1"></circle>
+               <circle cx="19" cy="20" r="1"></circle>
+               <path d="M3 4h2l2.4 10.4a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 8H7"></path>
+               <path d="m14 5 3 3-3 3"></path>
+           </svg>
        </button>`
     : ''}
                                 ${c.estado !== 'convertida'
-                                    ? `<button class="btn-app btn-app-danger btn-app-sm" onclick="confirmarEliminar(${c.id}, '${escapeHtml(String(numCotizacion))}')">
-                                           Eliminar
+                                    ? `<button
+                                           type="button"
+                                           class="quote-icon-btn quote-icon-btn-delete"
+                                           onclick="confirmarEliminar(${c.id}, '${escapeHtml(String(numCotizacion))}')"
+                                           title="Eliminar cotización"
+                                           aria-label="Eliminar cotización ${escapeHtml(String(numCotizacion))}">
+                                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                               <path d="M3 6h18"></path>
+                                               <path d="M8 6V4h8v2"></path>
+                                               <path d="M19 6 18 20H6L5 6"></path>
+                                               <path d="M10 11v5"></path>
+                                               <path d="M14 11v5"></path>
+                                           </svg>
                                        </button>`
                                     : ''}
                             </div>
@@ -591,14 +721,21 @@
             return div.innerHTML;
         }
 
-        // ---- Poblar select clientes ----
+        // ---- Cliente con búsqueda ----
         function poblarSelectClientes() {
             const select = document.getElementById('selectCliente');
             select.innerHTML = '<option value="">Seleccionar cliente...</option>';
             clientes.forEach(c => {
                 const id = c.id;
-                select.innerHTML += `<option value="${id}">${c.nombre}</option>`;
+                const meta = [c.telefono, c.direccion].filter(Boolean).join(' · ');
+                select.innerHTML += `<option value="${id}" data-search="${escapeHtml(`${c.telefono || ''} ${c.direccion || ''}`)}" data-meta="${escapeHtml(meta)}">${escapeHtml(c.nombre || `Cliente #${id}`)}</option>`;
             });
+            enhanceSearchableSelect(select, {
+                placeholder: 'Buscar cliente por nombre o teléfono...',
+                minChars: 1,
+                maxResults: 8,
+                promptMessage: 'Escriba el nombre o teléfono del cliente.'
+            }).refresh();
         }
 
         // ---- MODAL: Nueva Cotización ----
@@ -632,6 +769,7 @@ async function abrirModalEditar(id) {
     cotizacionIdEditando = id;
 
     document.getElementById('selectCliente').value = cotizacion.cliente ? cotizacion.cliente.id : '';
+    syncSearchableSelect('selectCliente');
     document.getElementById('inputNotas').value = cotizacion.notas || '';
     document.getElementById('inputDescuento').value = Number(cotizacion.descuento || 0);
 
@@ -644,6 +782,7 @@ async function abrirModalEditar(id) {
 
                 const row = document.getElementById(`line-${lineaCounter}`);
                 row.querySelector('.line-producto').value = detalle.producto ? detalle.producto.id : '';
+                syncSearchableSelect(row.querySelector('.line-producto'));
                 row.querySelector('.line-cantidad').value = detalle.cantidad || 1;
                 row.querySelector('.line-precio').value = Number(detalle.precioUnitario || 0);
 
@@ -668,6 +807,7 @@ async function abrirModalEditar(id) {
 
         function resetFormCotizacion() {
             document.getElementById('formCotizacion').reset();
+            syncSearchableSelect('selectCliente');
             document.getElementById('lineItemsBody').innerHTML = '';
             document.getElementById('inputDescuento').value = '0';
             document.getElementById('displaySubtotal').textContent = '$ 0';
@@ -681,7 +821,10 @@ async function abrirModalEditar(id) {
             const rowId = `line-${lineaCounter}`;
             const optionsHtml = productos.map(p => {
                 const id = p.id;
-                return `<option value="${id}" data-precio="${p.precioVenta || 0}" data-stock="${p.stockDisponible || 0}">${p.nombre}</option>`;
+                const codigo = p.codigo || '';
+                const categoria = p.categoria?.nombre || '';
+                const meta = [codigo && `Código ${codigo}`, `Stock ${Number(p.stockDisponible) || 0}`, formatCurrency(p.precioVenta)].filter(Boolean).join(' · ');
+                return `<option value="${id}" data-precio="${p.precioVenta || 0}" data-stock="${p.stockDisponible || 0}" data-search="${escapeHtml(`${codigo} ${categoria}`)}" data-meta="${escapeHtml(meta)}">${escapeHtml(p.nombre || `Producto #${id}`)}</option>`;
             }).join('');
 
             const row = document.createElement('tr');
@@ -708,6 +851,12 @@ async function abrirModalEditar(id) {
                 </td>
             `;
             document.getElementById('lineItemsBody').appendChild(row);
+            enhanceSearchableSelect(row.querySelector('.line-producto'), {
+                placeholder: 'Buscar producto por nombre o código...',
+                minChars: 1,
+                maxResults: 8,
+                promptMessage: 'Escriba el nombre o código del producto.'
+            });
         }
 
         function onProductoChange(rowId) {
@@ -778,8 +927,8 @@ async function abrirModalEditar(id) {
                 subtotal += cantidad * precio;
             });
 
-            const descuento = parseFloat(document.getElementById('inputDescuento').value) || 0;
-            const total = subtotal - (subtotal * descuento / 100);
+            const descuento = Math.max(0, parseFloat(document.getElementById('inputDescuento').value) || 0);
+            const total = Math.max(0, subtotal - descuento);
 
             document.getElementById('displaySubtotal').textContent = formatCurrency(subtotal);
             document.getElementById('displayTotal').textContent = formatCurrency(total);
@@ -845,22 +994,41 @@ async function abrirModalEditar(id) {
             btn.textContent = 'Guardando...';
 
             try {
+                let guardada;
                 if (cotizacionIdEditando) {
                     // Estamos editando: actualizar la cotización existente (NO crear otra).
-                    await ApiClient.actualizarCotizacion(cotizacionIdEditando, data);
+                    guardada = await ApiClient.actualizarCotizacion(cotizacionIdEditando, data);
                     showToast('Cotización actualizada exitosamente', 'success');
                 } else {
-                    await ApiClient.crearCotizacion(data);
+                    guardada = await ApiClient.crearCotizacion(data);
                     showToast('Cotización creada exitosamente', 'success');
                 }
+                const idGuardado = guardada?.id || cotizacionIdEditando;
                 cerrarModalNueva();
                 await cargarDatos();
+                if (idGuardado) await abrirCotizacionCliente(idGuardado);
             } catch (err) {
                 console.error('Error al guardar cotización:', err);
                 showToast(err.message || 'Error al guardar la cotización', 'error');
             } finally {
                 btn.disabled = false;
                 btn.textContent = cotizacionIdEditando ? 'Actualizar Cotización' : 'Guardar Cotización';
+            }
+        }
+
+        // ---- Vista limpia para el cliente: imagen, compartir y PDF ----
+        async function abrirCotizacionCliente(id) {
+            const cotizacion = cotizaciones.find(c => Number(c.id) === Number(id));
+            if (!cotizacion) {
+                showToast('No se encontró la cotización seleccionada', 'error');
+                return;
+            }
+            try {
+                const detalles = await ApiClient.listarDetalleCotizacion(id);
+                await QuoteExport.open(cotizacion, Array.isArray(detalles) ? detalles : []);
+            } catch (error) {
+                console.error('Error preparando la cotización:', error);
+                showToast(error.message || 'No se pudo preparar la cotización para compartir', 'error');
             }
         }
 
