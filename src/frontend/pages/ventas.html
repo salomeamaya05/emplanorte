@@ -11,8 +11,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Estilos -->
-    <link rel="stylesheet" href="../css/styles.css?v=2.2.1">
-    <link rel="stylesheet" href="../css/app.css?v=2.2.1">
+    <link rel="stylesheet" href="../css/styles.css?v=2.3.3">
+    <link rel="stylesheet" href="../css/app.css?v=2.3.3">
     <style>
         /* Estilos específicos para líneas de producto en el modal de venta */
         .line-items-container {
@@ -310,6 +310,11 @@
             color: #38a169;
         }
 
+        .audit-edita {
+            background: #fff4d6;
+            color: #9a6500;
+        }
+
         .audit-anula {
             background: var(--danger-light);
             color: var(--danger);
@@ -400,6 +405,112 @@
 
         .data-table-wrapper {
             overflow-x: auto;
+        }
+
+
+
+        .correction-banner {
+            display: none;
+            margin-bottom: 14px;
+            padding: 11px 13px;
+            border: 1px solid #f1c96a;
+            border-radius: 10px;
+            background: #fff9e8;
+            color: #73510b;
+            font-size: 12px;
+            line-height: 1.45;
+        }
+
+        .correction-banner.show { display: block; }
+        .form-help { display:block; margin-top:5px; color:var(--text-light); font-size:11px; line-height:1.35; }
+        .status-stack { display:flex; flex-wrap:wrap; gap:4px; align-items:center; }
+        .badge-edited { background:#fff4d6; color:#9a6500; }
+        .badge-correction { background:#e9f2ff; color:#1f65b7; }
+
+        /* Acciones compactas e intuitivas para ventas */
+        .sale-actions-cell {
+            white-space: nowrap;
+            min-width: 126px;
+        }
+        .sale-actions {
+            display: inline-flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 6px;
+            flex-wrap: nowrap;
+        }
+        .sale-action-btn {
+            width: 34px;
+            height: 34px;
+            min-width: 34px;
+            padding: 0;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+        }
+        .sale-action-btn svg {
+            width: 17px;
+            height: 17px;
+            stroke-width: 2;
+            pointer-events: none;
+        }
+        .sale-action-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 12px rgba(15, 23, 42, 0.14);
+        }
+        .sale-action-btn:focus-visible {
+            outline: 3px solid rgba(49, 130, 206, 0.25);
+            outline-offset: 2px;
+        }
+        .sale-action-btn-view {
+            color: #1d4ed8;
+            background: #eaf2ff;
+            border-color: #cfe0ff;
+        }
+        .sale-action-btn-view:hover { background: #dce9ff; }
+        .sale-action-btn-download {
+            color: #5b21b6;
+            background: #f3edff;
+            border-color: #dfd0ff;
+        }
+        .sale-action-btn-download:hover { background: #e9ddff; }
+        .sale-action-btn-edit {
+            color: #b45309;
+            background: #fff7e6;
+            border-color: #fde2ad;
+        }
+        .sale-action-btn-edit:hover { background: #ffefcc; }
+        .sale-action-btn-correct {
+            color: #0f766e;
+            background: #e9fbf7;
+            border-color: #c4eee5;
+        }
+        .sale-action-btn-correct:hover { background: #d9f7f0; }
+        .sale-action-btn-cancel {
+            color: #c62828;
+            background: #fff0f0;
+            border-color: #ffd3d3;
+        }
+        .sale-action-btn-cancel:hover { background: #ffe2e2; }
+
+        .audit-detail-changes { white-space:pre-line; margin-top:6px; padding:8px 10px; background:#f7f9fc; border-radius:8px; color:var(--text-medium); font-size:11px; line-height:1.45; }
+        .audit-motive { margin-top:5px; color:#77540b; font-size:11px; font-weight:600; }
+        .anulacion-options { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:12px 0 14px; }
+        .anulacion-option { display:block; cursor:pointer; }
+        .anulacion-option input { position:absolute; opacity:0; pointer-events:none; }
+        .anulacion-card { display:block; height:100%; padding:11px 12px; border:1px solid var(--card-border); border-radius:10px; background:#fff; transition:var(--transition); }
+        .anulacion-card strong { display:block; margin-bottom:4px; font-size:12px; color:var(--text-dark); }
+        .anulacion-card small { display:block; color:var(--text-light); font-size:10px; line-height:1.4; }
+        .anulacion-option input:checked + .anulacion-card { border-color:var(--primary); box-shadow:0 0 0 3px rgba(49,130,206,.12); background:#f6fbff; }
+        .edit-warning { padding:10px 12px; margin-bottom:14px; border-radius:9px; background:#f7f9fc; border:1px solid var(--card-border); color:var(--text-medium); font-size:11px; line-height:1.45; }
+
+        @media (max-width: 650px) {
+            .anulacion-options { grid-template-columns:1fr; }
         }
 
         @media (max-width: 768px) {
@@ -520,29 +631,38 @@
             </div>
             <form id="formNuevaVenta" onsubmit="return guardarVenta(event)">
                 <div class="modal-body">
+                    <div class="correction-banner" id="ventaCorreccionBanner"></div>
                     <!-- Datos generales -->
                     <div class="form-row">
                         <div class="form-group-app">
-                            <label for="ventaCliente">Cliente</label>
+                            <label for="ventaCliente">Cliente *</label>
                             <select id="ventaCliente" required>
                                 <option value="">Seleccionar cliente...</option>
                             </select>
                         </div>
                         <div class="form-group-app">
-                            <label for="ventaMetodoPago">Método de Pago</label>
+                            <label for="ventaMetodoPago">Método de Pago *</label>
                             <select id="ventaMetodoPago" required>
                                 <option value="">Seleccionar...</option>
                                 <option value="efectivo">Efectivo</option>
                                 <option value="transferencia">Transferencia</option>
                                 <option value="tarjeta">Tarjeta</option>
+                                <option value="credito">Crédito</option>
                                 <option value="otro">Otro</option>
                             </select>
                         </div>
                     </div>
-                    <div class="form-group-app">
-                        <label for="ventaObservaciones">Observaciones</label>
-                        <textarea id="ventaObservaciones" rows="2"
-                            placeholder="Notas adicionales sobre la venta (opcional)"></textarea>
+                    <div class="form-row">
+                        <div class="form-group-app">
+                            <label for="ventaFecha">Fecha y hora real de la venta *</label>
+                            <input type="datetime-local" id="ventaFecha" required>
+                            <small class="form-help">Se usa en la tabla, el Dashboard y los reportes. La fecha de registro queda guardada aparte.</small>
+                        </div>
+                        <div class="form-group-app">
+                            <label for="ventaObservaciones">Observaciones</label>
+                            <textarea id="ventaObservaciones" rows="2"
+                                placeholder="Notas adicionales sobre la venta (opcional)"></textarea>
+                        </div>
                     </div>
 
                     <!-- Líneas de productos -->
@@ -602,10 +722,11 @@
                     <div><span class="ver-label">Nº Venta</span><span id="verNumero" class="ver-value">-</span></div>
                     <div><span class="ver-label">Estado</span><span id="verEstado" class="ver-value">-</span></div>
                     <div><span class="ver-label">Cliente</span><span id="verCliente" class="ver-value">-</span></div>
-                    <div><span class="ver-label">Fecha</span><span id="verFecha" class="ver-value">-</span></div>
-                    <div><span class="ver-label">Método de pago</span><span id="verMetodo" class="ver-value">-</span>
-                    </div>
+                    <div><span class="ver-label">Fecha real de venta</span><span id="verFecha" class="ver-value">-</span></div>
+                    <div><span class="ver-label">Fecha de registro</span><span id="verFechaRegistro" class="ver-value">-</span></div>
+                    <div><span class="ver-label">Método de pago</span><span id="verMetodo" class="ver-value">-</span></div>
                     <div><span class="ver-label">Total</span><span id="verTotal" class="ver-value">-</span></div>
+                    <div><span class="ver-label">Relación de corrección</span><span id="verRelacion" class="ver-value">-</span></div>
                 </div>
                 <h4 class="ver-subtitle">🛒 Productos</h4>
                 <div id="verProductos" class="ver-prod-list"></div>
@@ -619,32 +740,103 @@
         </div>
     </div>
 
+
+
+    <!-- Modal: Editar datos administrativos de la venta -->
+    <div class="modal-overlay" id="modalEditarVenta">
+        <div class="modal" style="max-width:620px;">
+            <div class="modal-header">
+                <h3>Editar datos de la venta</h3>
+                <button class="modal-close" onclick="closeModal('modalEditarVenta')">&times;</button>
+            </div>
+            <form id="formEditarVenta" onsubmit="guardarEdicionVenta(event)">
+                <div class="modal-body">
+                    <div class="edit-warning">
+                        Aquí solo se corrigen cliente, fecha, método de pago y observaciones. Para cambiar productos,
+                        cantidades, precios o descuento, use <strong>Anular y corregir</strong> para proteger inventario y ganancias.
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group-app">
+                            <label for="editarVentaCliente">Cliente *</label>
+                            <select id="editarVentaCliente" required><option value="">Seleccionar cliente...</option></select>
+                        </div>
+                        <div class="form-group-app">
+                            <label for="editarVentaFecha">Fecha y hora real *</label>
+                            <input type="datetime-local" id="editarVentaFecha" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group-app">
+                            <label for="editarVentaMetodo">Método de pago *</label>
+                            <select id="editarVentaMetodo" required>
+                                <option value="efectivo">Efectivo</option>
+                                <option value="transferencia">Transferencia</option>
+                                <option value="tarjeta">Tarjeta</option>
+                                <option value="credito">Crédito</option>
+                                <option value="otro">Otro</option>
+                            </select>
+                        </div>
+                        <div class="form-group-app">
+                            <label for="editarVentaPassword">Contraseña del administrador *</label>
+                            <input type="password" id="editarVentaPassword" autocomplete="current-password" required>
+                        </div>
+                    </div>
+                    <div class="form-group-app">
+                        <label for="editarVentaObservaciones">Observaciones</label>
+                        <textarea id="editarVentaObservaciones" rows="2"></textarea>
+                    </div>
+                    <div class="form-group-app">
+                        <label for="editarVentaMotivo">Motivo de la corrección *</label>
+                        <textarea id="editarVentaMotivo" rows="2" minlength="5" required
+                            placeholder="Ejemplo: se seleccionó el cliente o la fecha equivocada."></textarea>
+                    </div>
+                    <div id="editarVentaError" class="hidden" style="margin-top:8px;padding:8px 10px;border-radius:var(--radius-sm);background:var(--danger-light);color:var(--danger);border:1px solid var(--danger);font-size:12px;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-app btn-app-outline" onclick="closeModal('modalEditarVenta')">Cancelar</button>
+                    <button type="submit" class="btn-app btn-app-primary" id="btnGuardarEdicionVenta">Guardar corrección</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Modal: Anular Venta (requiere contraseña) -->
     <div class="modal-overlay" id="modalAnularVenta">
-        <div class="modal" style="max-width:420px;">
+        <div class="modal" style="max-width:520px;">
             <div class="modal-header">
-                <h3>Anular Venta</h3>
+                <h3>Anular o corregir venta</h3>
                 <button class="modal-close" onclick="closeModal('modalAnularVenta')">&times;</button>
             </div>
             <form id="formAnularVenta" onsubmit="confirmarAnulacion(event)">
                 <div class="modal-body">
-                    <p style="font-size:13px;color:var(--text-medium);margin-bottom:14px;">
-                        Vas a anular la venta <strong id="anularNumero"></strong>. Esto devolverá el stock
-                        de los productos al inventario y <strong>no se puede deshacer</strong>.
+                    <p style="font-size:13px;color:var(--text-medium);margin-bottom:8px;">
+                        Venta <strong id="anularNumero"></strong>. Al confirmar se devolverá el stock y la venta quedará anulada.
                     </p>
+                    <div class="anulacion-options">
+                        <label class="anulacion-option">
+                            <input type="radio" name="tipoAnulacion" value="simple" checked>
+                            <span class="anulacion-card"><strong>Anular solamente</strong><small>La venta deja de contar en inventario, ganancias, Dashboard y reportes.</small></span>
+                        </label>
+                        <label class="anulacion-option">
+                            <input type="radio" name="tipoAnulacion" value="corregir">
+                            <span class="anulacion-card"><strong>Anular y corregir</strong><small>Devuelve el stock y abre una nueva venta precargada para corregir productos, cantidades o precios.</small></span>
+                        </label>
+                    </div>
                     <div class="form-group-app">
-                        <label for="anularPassword">Confirma tu contraseña para continuar *</label>
+                        <label for="anularMotivo">Motivo *</label>
+                        <textarea id="anularMotivo" rows="2" minlength="5" required
+                            placeholder="Explique por qué se anula o corrige esta venta."></textarea>
+                    </div>
+                    <div class="form-group-app">
+                        <label for="anularPassword">Contraseña del administrador *</label>
                         <input type="password" id="anularPassword" placeholder="Contraseña de tu cuenta"
                             autocomplete="current-password" required>
                     </div>
-                    <div id="anularError" class="hidden" style="margin-top:8px;padding:8px 10px;border-radius:var(--radius-sm);
-                                background:var(--danger-light);color:var(--danger);
-                                border:1px solid var(--danger);font-size:12px;"></div>
+                    <div id="anularError" class="hidden" style="margin-top:8px;padding:8px 10px;border-radius:var(--radius-sm);background:var(--danger-light);color:var(--danger);border:1px solid var(--danger);font-size:12px;"></div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn-app btn-app-outline"
-                        onclick="closeModal('modalAnularVenta')">Cancelar</button>
-                    <button type="submit" class="btn-app btn-app-danger" id="btnConfirmarAnular">Anular Venta</button>
+                    <button type="button" class="btn-app btn-app-outline" onclick="closeModal('modalAnularVenta')">Cancelar</button>
+                    <button type="submit" class="btn-app btn-app-danger" id="btnConfirmarAnular">Confirmar anulación</button>
                 </div>
             </form>
         </div>
@@ -734,8 +926,10 @@
     </div>
 
     <!-- Scripts -->
-    <script src="../js/api.js?v=2.2.1"></script>
-    <script src="../js/utils.js?v=2.2.1"></script>
+    <script src="../js/vendor/jspdf.umd.min.js"></script>
+    <script src="../js/api.js?v=2.3.3"></script>
+    <script src="../js/utils.js?v=2.3.3"></script>
+    <script src="../js/quote-export.js?v=2.3.3"></script>
     <script>
         // ---- Estado Global ----
         let ventas = [];
@@ -743,6 +937,10 @@
         let productos = [];
         let lineaCounter = 0;
         let ventaIdEditando = null;
+        let ventaIdAnular = null;
+        let ventaIdOrigen = null;
+        let motivoCorreccionActual = '';
+        let contextoAnulacion = null;
 
         // ---- Inicialización ----
         checkSession();
@@ -879,19 +1077,8 @@
                         <td class="text-right fw-bold">${formatCurrency(total)}</td>
                         <td class="text-right ${ganancia >= 0 ? 'text-success' : 'text-danger'}">${formatCurrency(ganancia)}</td>
                         <td>${metodoPago}</td>
-                        <td>${renderBadgeEstado(estado)}</td>
-                        <td>
-                            <div style="display:flex;gap:6px;">
-                                <button class="btn-app btn-app-outline btn-app-sm" onclick="verVenta(${v.id})">
-                                    Ver
-                                </button>
-                                ${estado !== 'anulada'
-                        ? `<button class="btn-app btn-app-danger btn-app-sm" onclick="abrirModalAnular(${v.id})">
-                                           Anular
-                                       </button>`
-                        : ''}
-                            </div>
-                        </td>
+                        <td>${renderEstadoVenta(v)}</td>
+                        <td class="sale-actions-cell">${renderAccionesVenta(v)}</td>
                     </tr>
                 `;
             }).join('');
@@ -911,12 +1098,101 @@
             return `<span class="badge ${clase}">${texto}</span>`;
         }
 
+        function renderEstadoVenta(venta) {
+            const badges = [renderBadgeEstado(venta.estado || 'completada')];
+            if (venta.editada) badges.push('<span class="badge badge-edited">Editada</span>');
+            if (venta.idVentaOrigen) badges.push('<span class="badge badge-correction">Corrección</span>');
+            if (venta.idVentaReemplazo) badges.push('<span class="badge badge-correction">Corregida</span>');
+            return `<div class="status-stack">${badges.join('')}</div>`;
+        }
+
+        function renderAccionesVenta(venta) {
+            const estado = String(venta.estado || '').toLowerCase();
+            const numero = escapeHtml(String(venta.numeroVenta || venta.id || ''));
+            const botones = [
+                `<button
+                    type="button"
+                    class="sale-action-btn sale-action-btn-view"
+                    onclick="verVenta(${venta.id})"
+                    title="Ver detalle de la venta"
+                    aria-label="Ver detalle de la venta ${numero}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                        <circle cx="12" cy="12" r="2.6"></circle>
+                    </svg>
+                </button>`
+            ];
+
+            if (estado !== 'anulada') {
+                botones.push(`
+                    <button
+                        type="button"
+                        class="sale-action-btn sale-action-btn-download"
+                        onclick="abrirCotizacionDesdeVenta(${venta.id})"
+                        title="Descargar cotización"
+                        aria-label="Descargar cotización basada en la venta ${numero}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M12 3v12"></path>
+                            <path d="m7 10 5 5 5-5"></path>
+                            <path d="M5 21h14"></path>
+                        </svg>
+                    </button>
+                `);
+                botones.push(`
+                    <button
+                        type="button"
+                        class="sale-action-btn sale-action-btn-edit"
+                        onclick="abrirModalEditarVenta(${venta.id})"
+                        title="Editar datos de la venta"
+                        aria-label="Editar datos de la venta ${numero}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M12 20h9"></path>
+                            <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"></path>
+                        </svg>
+                    </button>
+                `);
+                botones.push(`
+                    <button
+                        type="button"
+                        class="sale-action-btn sale-action-btn-cancel"
+                        onclick="abrirModalAnular(${venta.id})"
+                        title="Anular o anular y corregir"
+                        aria-label="Anular o corregir la venta ${numero}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="9"></circle>
+                            <path d="m8.5 8.5 7 7"></path>
+                            <path d="m15.5 8.5-7 7"></path>
+                        </svg>
+                    </button>
+                `);
+            } else if (!venta.idVentaReemplazo) {
+                botones.push(`
+                    <button
+                        type="button"
+                        class="sale-action-btn sale-action-btn-correct"
+                        onclick="continuarCorreccion(${venta.id})"
+                        title="Continuar corrección"
+                        aria-label="Continuar corrección de la venta ${numero}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M20 7v5h-5"></path>
+                            <path d="M4 17v-5h5"></path>
+                            <path d="M6.1 8.2A7 7 0 0 1 18.6 7L20 12"></path>
+                            <path d="M17.9 15.8A7 7 0 0 1 5.4 17L4 12"></path>
+                        </svg>
+                    </button>
+                `);
+            }
+
+            return `<div class="sale-actions" role="group" aria-label="Acciones de la venta ${numero}">${botones.join('')}</div>`;
+        }
+
         function capitalizarMetodoPago(metodo) {
             if (!metodo) return '-';
             const mapa = {
                 'efectivo': 'Efectivo',
                 'transferencia': 'Transferencia',
                 'tarjeta': 'Tarjeta',
+                'credito': 'Crédito',
                 'otro': 'Otro'
             };
             return mapa[metodo.toLowerCase()] || metodo;
@@ -924,8 +1200,34 @@
 
         function escapeHtml(text) {
             const div = document.createElement('div');
-            div.textContent = text;
+            div.textContent = text == null ? '' : String(text);
             return div.innerHTML;
+        }
+
+        function fechaHoraLocalInput(valor = null) {
+            const fecha = valor ? new Date(valor) : new Date();
+            if (Number.isNaN(fecha.getTime())) return '';
+            const pad = n => String(n).padStart(2, '0');
+            return `${fecha.getFullYear()}-${pad(fecha.getMonth() + 1)}-${pad(fecha.getDate())}T${pad(fecha.getHours())}:${pad(fecha.getMinutes())}`;
+        }
+
+        function poblarSelectClientes(selectId, valor = null) {
+            const select = document.getElementById(selectId);
+            select.innerHTML = '<option value="">Seleccionar cliente...</option>';
+            clientes.forEach(c => {
+                const documento = c.documento || c.numeroDocumento || c.identificacion || '';
+                const telefono = c.telefono || '';
+                select.innerHTML += `<option value="${c.id}" data-search="${escapeHtml(`${documento} ${telefono}`)}" data-meta="${escapeHtml([documento && `Doc. ${documento}`, telefono].filter(Boolean).join(' · '))}">${escapeHtml(c.nombre || `Cliente #${c.id}`)}</option>`;
+            });
+            const buscador = enhanceSearchableSelect(select, {
+                placeholder: 'Buscar cliente por nombre o documento...',
+                minChars: 1,
+                maxResults: 8,
+                promptMessage: 'Escriba el nombre o documento del cliente.'
+            });
+            if (valor) buscador.setValue(valor);
+            else buscador.clear({ dispatch: false });
+            return buscador;
         }
 
         // ============================================================
@@ -934,43 +1236,116 @@
 
         function abrirModalNuevaVenta() {
             ventaIdEditando = null;
+            ventaIdOrigen = null;
+            motivoCorreccionActual = '';
             document.querySelector('#modalNuevaVenta .modal-header h3').textContent = 'Nueva Venta';
             document.getElementById('btnGuardarVenta').textContent = 'Registrar Venta';
-            // Resetear formulario
+            document.getElementById('ventaCorreccionBanner').classList.remove('show');
+            document.getElementById('ventaCorreccionBanner').textContent = '';
+
             document.getElementById('formNuevaVenta').reset();
             document.getElementById('lineItemsBody').innerHTML = '';
             document.getElementById('ventaSubtotal').textContent = '$ 0';
             document.getElementById('ventaTotal').textContent = '$ 0';
             document.getElementById('ventaDescuento').value = '0';
+            document.getElementById('ventaFecha').value = fechaHoraLocalInput();
             lineaCounter = 0;
 
-            // Poblar cliente y convertirlo en buscador (el ID real sigue en el select oculto).
-            const selectCliente = document.getElementById('ventaCliente');
-            selectCliente.innerHTML = '<option value="">Seleccionar cliente...</option>';
-            clientes.forEach(c => {
-                const id = c.id;
-                const nombre = c.nombre || `Cliente #${id}`;
-                const documento = c.documento || c.numeroDocumento || c.identificacion || '';
-                const telefono = c.telefono || '';
-                selectCliente.innerHTML += `<option value="${id}" data-search="${escapeHtml(`${documento} ${telefono}`)}" data-meta="${escapeHtml([documento && `Doc. ${documento}`, telefono].filter(Boolean).join(' · '))}">${escapeHtml(nombre)}</option>`;
-            });
-            enhanceSearchableSelect(selectCliente, {
-                placeholder: 'Buscar cliente por nombre o documento...',
-                minChars: 1,
-                maxResults: 8,
-                promptMessage: 'Escriba el nombre o documento del cliente.'
-            }).clear({ dispatch: false });
-
-            // Agregar primera línea de producto
+            poblarSelectClientes('ventaCliente');
             agregarLineaProducto();
-
             openModal('modalNuevaVenta');
         }
+
+        async function abrirVentaCorregida(venta, detalles, motivo) {
+            abrirModalNuevaVenta();
+            ventaIdOrigen = venta.id;
+            motivoCorreccionActual = motivo || venta.motivoAnulacion || 'Corrección de venta anulada';
+
+            document.querySelector('#modalNuevaVenta .modal-header h3').textContent = `Corregir ${venta.numeroVenta || 'venta'}`;
+            document.getElementById('btnGuardarVenta').textContent = 'Registrar venta corregida';
+            const banner = document.getElementById('ventaCorreccionBanner');
+            banner.innerHTML = `<strong>Corrección de ${escapeHtml(venta.numeroVenta || ('#' + venta.id))}.</strong> La venta original permanece anulada. Esta nueva venta quedará enlazada en el historial.`;
+            banner.classList.add('show');
+
+            poblarSelectClientes('ventaCliente', venta.cliente ? venta.cliente.id : null);
+            document.getElementById('ventaMetodoPago').value = venta.metodoPago || '';
+            document.getElementById('ventaFecha').value = fechaHoraLocalInput(venta.fechaVenta);
+            document.getElementById('ventaObservaciones').value = venta.observaciones || '';
+            document.getElementById('ventaDescuento').value = Number(venta.descuento) || 0;
+
+            document.getElementById('lineItemsBody').innerHTML = '';
+            lineaCounter = 0;
+            (detalles || []).forEach(detalle => agregarLineaProducto({
+                idProducto: detalle.producto ? detalle.producto.id : null,
+                cantidad: detalle.cantidad,
+                precioUnitario: detalle.precioUnitario
+            }));
+            if (!detalles || !detalles.length) agregarLineaProducto();
+            recalcularTotales();
+        }
+
+        async function continuarCorreccion(id) {
+            const venta = ventas.find(v => Number(v.id) === Number(id));
+            if (!venta) {
+                showToast('No se encontró la venta seleccionada', 'error');
+                return;
+            }
+            if (venta.idVentaReemplazo) {
+                showToast('Esta venta ya tiene una corrección asociada', 'warning');
+                return;
+            }
+            try {
+                const detalles = await ApiClient.listarDetalleVenta(id);
+                await abrirVentaCorregida(venta, detalles, venta.motivoAnulacion);
+            } catch (err) {
+                showToast(err.message || 'No se pudo preparar la corrección', 'error');
+            }
+        }
+
+        // ============================================================
+        // COTIZACIÓN GENERADA DESDE UNA VENTA
+        // No crea un registro nuevo en Cotizaciones. Solo reutiliza
+        // el formato visual para descargar o compartir con el cliente.
+        // ============================================================
+        async function abrirCotizacionDesdeVenta(id) {
+            const venta = ventas.find(v => Number(v.id) === Number(id));
+            if (!venta) {
+                showToast('No se encontró la venta seleccionada', 'error');
+                return;
+            }
+            if (String(venta.estado || '').toLowerCase() === 'anulada') {
+                showToast('Las ventas anuladas no permiten descargar cotización', 'warning');
+                return;
+            }
+
+            try {
+                const detalles = await ApiClient.listarDetalleVenta(id);
+                if (!detalles || detalles.length === 0) {
+                    showToast('La venta no tiene productos para generar la cotización', 'warning');
+                    return;
+                }
+
+                await QuoteExport.open({
+                    id: venta.id,
+                    numeroVenta: venta.numeroVenta || ('VENTA-' + venta.id),
+                    fechaVenta: venta.fechaVenta,
+                    cliente: venta.cliente,
+                    observaciones: venta.observaciones || '',
+                    subtotal: venta.subtotal,
+                    descuento: venta.descuento,
+                    total: venta.total
+                }, detalles);
+            } catch (error) {
+                console.error('Error generando cotización desde venta:', error);
+                showToast(error.message || 'No se pudo preparar la cotización', 'error');
+            }
+        }
+
         // ============================================================
         // VER VENTA (detalle de productos + bitácora de auditoría)
         // ============================================================
         async function verVenta(id) {
-            const venta = ventas.find(v => v.id === id);
+            const venta = ventas.find(v => Number(v.id) === Number(id));
             if (!venta) {
                 showToast('No se encontró la venta seleccionada', 'error');
                 return;
@@ -979,9 +1354,17 @@
             document.getElementById('verNumero').textContent = venta.numeroVenta || ('#' + id);
             document.getElementById('verCliente').textContent = venta.cliente ? venta.cliente.nombre : 'Sin cliente';
             document.getElementById('verFecha').textContent = formatDateTime(venta.fechaVenta);
+            document.getElementById('verFechaRegistro').textContent = formatDateTime(venta.fechaRegistro);
             document.getElementById('verTotal').textContent = formatCurrency(venta.total);
-            document.getElementById('verEstado').innerHTML = renderBadgeEstado(venta.estado || 'completada');
+            document.getElementById('verEstado').innerHTML = renderEstadoVenta(venta);
             document.getElementById('verMetodo').textContent = capitalizarMetodoPago(venta.metodoPago);
+
+            const origen = venta.idVentaOrigen ? ventas.find(v => Number(v.id) === Number(venta.idVentaOrigen)) : null;
+            const reemplazo = venta.idVentaReemplazo ? ventas.find(v => Number(v.id) === Number(venta.idVentaReemplazo)) : null;
+            const relaciones = [];
+            if (venta.idVentaOrigen) relaciones.push(`Corrige a ${origen?.numeroVenta || ('#' + venta.idVentaOrigen)}`);
+            if (venta.idVentaReemplazo) relaciones.push(`Reemplazada por ${reemplazo?.numeroVenta || ('#' + venta.idVentaReemplazo)}`);
+            document.getElementById('verRelacion').textContent = relaciones.join(' · ') || 'Sin relación';
 
             const prodEl = document.getElementById('verProductos');
             const histEl = document.getElementById('verHistorialVenta');
@@ -999,7 +1382,7 @@
             } catch (err) {
                 console.error('Error al cargar la venta:', err);
                 prodEl.innerHTML = '<div class="audit-loading">No se pudo cargar el detalle.</div>';
-                histEl.innerHTML = '';
+                histEl.innerHTML = '<div class="audit-loading">No se pudo cargar el historial.</div>';
             }
         }
 
@@ -1024,17 +1407,25 @@
                 histEl.innerHTML = '<div class="audit-loading">Sin registros de auditoría.</div>';
                 return;
             }
+            const tipos = {
+                creacion: { texto: 'Creación', clase: 'audit-crea' },
+                edicion: { texto: 'Edición', clase: 'audit-edita' },
+                anulacion: { texto: 'Anulación', clase: 'audit-anula' },
+                anulacion_correccion: { texto: 'Anulada para corregir', clase: 'audit-anula' },
+                correccion_creada: { texto: 'Venta relacionada', clase: 'audit-crea' }
+            };
             histEl.innerHTML = auditoria.map(a => {
-                const esCreacion = a.accion === 'creacion';
+                const tipo = tipos[a.accion] || { texto: a.accion || 'Cambio', clase: 'audit-crea' };
                 const quien = a.usuarioNombre || ('Usuario #' + (a.idUsuario || '?'));
+                const motivo = a.motivo ? `<div class="audit-motive">Motivo: ${escapeHtml(a.motivo)}</div>` : '';
+                const cambios = a.detalleCambios ? `<div class="audit-detail-changes">${escapeHtml(a.detalleCambios)}</div>` : '';
                 return `
                     <div class="audit-item">
-                        <span class="audit-badge ${esCreacion ? 'audit-crea' : 'audit-anula'}">
-                            ${esCreacion ? 'Creación' : 'Anulación'}
-                        </span>
+                        <span class="audit-badge ${tipo.clase}">${escapeHtml(tipo.texto)}</span>
                         <div class="audit-body">
                             <div class="audit-head"><strong>${escapeHtml(quien)}</strong> · ${formatDateTime(a.fechaRegistro)}</div>
                             <div class="audit-detail">${escapeHtml(a.numeroVenta || '')} · ${formatCurrency(a.total)}</div>
+                            ${motivo}${cambios}
                         </div>
                     </div>
                 `;
@@ -1042,25 +1433,91 @@
         }
 
         // ============================================================
-        // ANULAR VENTA (requiere contraseña; devuelve el stock)
+        // EDITAR DATOS ADMINISTRATIVOS
         // ============================================================
-        let ventaIdAnular = null;
+        function abrirModalEditarVenta(id) {
+            const venta = ventas.find(v => Number(v.id) === Number(id));
+            if (!venta || String(venta.estado).toLowerCase() === 'anulada') {
+                showToast('Esta venta no se puede editar', 'warning');
+                return;
+            }
+            ventaIdEditando = id;
+            poblarSelectClientes('editarVentaCliente', venta.cliente ? venta.cliente.id : null);
+            document.getElementById('editarVentaFecha').value = fechaHoraLocalInput(venta.fechaVenta);
+            document.getElementById('editarVentaMetodo').value = venta.metodoPago || 'efectivo';
+            document.getElementById('editarVentaObservaciones').value = venta.observaciones || '';
+            document.getElementById('editarVentaMotivo').value = '';
+            document.getElementById('editarVentaPassword').value = '';
+            document.getElementById('editarVentaError').classList.add('hidden');
+            openModal('modalEditarVenta');
+        }
 
-        function abrirModalAnular(id) {
-            const venta = ventas.find(v => v.id === id);
+        async function guardarEdicionVenta(event) {
+            event.preventDefault();
+            const error = document.getElementById('editarVentaError');
+            error.classList.add('hidden');
+            const motivo = document.getElementById('editarVentaMotivo').value.trim();
+            const contrasena = document.getElementById('editarVentaPassword').value;
+            const idCliente = document.getElementById('editarVentaCliente').value;
+            if (!idCliente || motivo.length < 5 || !contrasena) {
+                error.textContent = 'Seleccione un cliente y escriba el motivo y la contraseña.';
+                error.classList.remove('hidden');
+                return false;
+            }
+            const user = getUser();
+            const data = {
+                idCliente: Number(idCliente),
+                fechaVenta: document.getElementById('editarVentaFecha').value,
+                metodoPago: document.getElementById('editarVentaMetodo').value,
+                observaciones: document.getElementById('editarVentaObservaciones').value.trim(),
+                motivo,
+                idUsuario: user ? (user.id || user.idUsuario) : null,
+                contrasena
+            };
+            const btn = document.getElementById('btnGuardarEdicionVenta');
+            btn.disabled = true;
+            btn.textContent = 'Guardando...';
+            try {
+                await ApiClient.actualizarVenta(ventaIdEditando, data);
+                closeModal('modalEditarVenta');
+                showToast('Venta corregida. El inventario y los valores financieros no fueron modificados.', 'success');
+                await cargarDatos();
+            } catch (err) {
+                error.textContent = err.message || 'No se pudo guardar la corrección.';
+                error.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Guardar corrección';
+            }
+            return false;
+        }
+
+        // ============================================================
+        // ANULAR / ANULAR Y CORREGIR
+        // ============================================================
+        async function abrirModalAnular(id) {
+            const venta = ventas.find(v => Number(v.id) === Number(id));
             if (!venta) {
                 showToast('No se encontró la venta seleccionada', 'error');
                 return;
             }
-            if (venta.estado === 'anulada') {
+            if (String(venta.estado).toLowerCase() === 'anulada') {
                 showToast('La venta ya está anulada', 'warning');
                 return;
             }
-            ventaIdAnular = id;
-            document.getElementById('anularNumero').textContent = venta.numeroVenta || ('#' + id);
-            document.getElementById('anularPassword').value = '';
-            document.getElementById('anularError').classList.add('hidden');
-            openModal('modalAnularVenta');
+            try {
+                const detalles = await ApiClient.listarDetalleVenta(id);
+                contextoAnulacion = { venta, detalles };
+                ventaIdAnular = id;
+                document.getElementById('anularNumero').textContent = venta.numeroVenta || ('#' + id);
+                document.getElementById('anularPassword').value = '';
+                document.getElementById('anularMotivo').value = '';
+                document.querySelector('input[name="tipoAnulacion"][value="simple"]').checked = true;
+                document.getElementById('anularError').classList.add('hidden');
+                openModal('modalAnularVenta');
+            } catch (err) {
+                showToast(err.message || 'No se pudo cargar la venta', 'error');
+            }
         }
 
         async function confirmarAnulacion(event) {
@@ -1069,36 +1526,47 @@
             errEl.classList.add('hidden');
 
             const contrasena = document.getElementById('anularPassword').value;
-            if (!contrasena) {
-                errEl.textContent = 'Ingresa tu contraseña para confirmar.';
+            const motivo = document.getElementById('anularMotivo').value.trim();
+            const tipo = document.querySelector('input[name="tipoAnulacion"]:checked')?.value || 'simple';
+            const corregir = tipo === 'corregir';
+            if (!contrasena || motivo.length < 5) {
+                errEl.textContent = 'Escriba un motivo claro y la contraseña del administrador.';
                 errEl.classList.remove('hidden');
-                return;
+                return false;
             }
 
             const user = getUser();
             const idUsuario = user ? (user.id || user.idUsuario) : null;
-
             const btn = document.getElementById('btnConfirmarAnular');
             btn.disabled = true;
-            btn.textContent = 'Anulando...';
+            btn.textContent = corregir ? 'Preparando corrección...' : 'Anulando...';
             try {
-                await ApiClient.anularVenta(ventaIdAnular, idUsuario, contrasena);
-                showToast('Venta anulada. El stock fue devuelto al inventario.', 'success');
+                const contexto = contextoAnulacion;
+                await ApiClient.anularVenta(ventaIdAnular, idUsuario, contrasena, motivo, corregir);
                 closeModal('modalAnularVenta');
-                ventaIdAnular = null;
                 await cargarDatos();
+                showToast('Venta anulada. El stock fue devuelto correctamente.', 'success');
+                if (corregir && contexto) {
+                    const ventaActualizada = ventas.find(v => Number(v.id) === Number(contexto.venta.id)) || contexto.venta;
+                    await abrirVentaCorregida(ventaActualizada, contexto.detalles, motivo);
+                }
+                ventaIdAnular = null;
+                contextoAnulacion = null;
             } catch (err) {
                 console.error('Error al anular venta:', err);
                 errEl.textContent = err.message || 'No se pudo anular la venta.';
                 errEl.classList.remove('hidden');
             } finally {
                 btn.disabled = false;
-                btn.textContent = 'Anular Venta';
+                btn.textContent = 'Confirmar anulación';
             }
+            return false;
         }
 
         function cerrarModalVenta() {
             closeModal('modalNuevaVenta');
+            ventaIdOrigen = null;
+            motivoCorreccionActual = '';
         }
 
         // ---- Líneas de producto ----
@@ -1111,7 +1579,7 @@
                 .trim();
         }
 
-        function agregarLineaProducto() {
+        function agregarLineaProducto(inicial = null) {
             lineaCounter++;
             const lineId = lineaCounter;
             const container = document.getElementById('lineItemsBody');
@@ -1136,6 +1604,13 @@
             `;
 
             container.appendChild(row);
+
+            if (inicial && inicial.idProducto) {
+                seleccionarProductoLinea(lineId, inicial.idProducto);
+                document.getElementById(`cant_${lineId}`).value = Number(inicial.cantidad) || 1;
+                document.getElementById(`precio_${lineId}`).value = Number(inicial.precioUnitario) || 0;
+                recalcularLinea(lineId);
+            }
         }
 
         function cerrarResultadosProductos(exceptoId = null) {
@@ -1274,6 +1749,7 @@
 
             const idCliente = document.getElementById('ventaCliente').value;
             const metodoPago = document.getElementById('ventaMetodoPago').value;
+            const fechaVenta = document.getElementById('ventaFecha').value;
             const observaciones = document.getElementById('ventaObservaciones').value.trim();
             const descuento = Math.max(0, Number(document.getElementById('ventaDescuento').value) || 0);
 
@@ -1284,6 +1760,16 @@
 
             if (!metodoPago) {
                 showToast('Selecciona un método de pago', 'warning');
+                return false;
+            }
+
+            if (!fechaVenta) {
+                showToast('Selecciona la fecha y hora real de la venta', 'warning');
+                return false;
+            }
+
+            if (new Date(fechaVenta).getTime() > Date.now() + 5 * 60 * 1000) {
+                showToast('La fecha de la venta no puede estar en el futuro', 'warning');
                 return false;
             }
 
@@ -1340,10 +1826,13 @@
             const ventaData = {
                 idCliente: Number(idCliente),
                 idUsuario: idUsuario,
+                fechaVenta: fechaVenta,
                 metodoPago: metodoPago,
                 descuento: descuento,
                 observaciones: observaciones,
-                detalles: detalles
+                detalles: detalles,
+                idVentaOrigen: ventaIdOrigen,
+                motivoCorreccion: ventaIdOrigen ? motivoCorreccionActual : null
             };
 
             // Pago con tarjeta → pasar por la pasarela (débito/crédito) antes de registrar.
@@ -1367,7 +1856,7 @@
                 showToast(err.message || 'Error al registrar la venta', 'error');
             } finally {
                 btnGuardar.disabled = false;
-                btnGuardar.textContent = 'Registrar Venta';
+                btnGuardar.textContent = ventaIdOrigen ? 'Registrar venta corregida' : 'Registrar Venta';
             }
 
             return false;
@@ -1375,8 +1864,9 @@
 
         // Registra la venta en el backend (lógica compartida: pago directo y pasarela).
         async function enviarVenta(data) {
+            const esCorreccion = Boolean(data.idVentaOrigen);
             await ApiClient.registrarVenta(data);
-            showToast('Venta registrada exitosamente', 'success');
+            showToast(esCorreccion ? 'Venta corregida registrada y enlazada al historial.' : 'Venta registrada exitosamente', 'success');
             closeModal('modalPasarela');
             cerrarModalVenta();
             await cargarDatos();

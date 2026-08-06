@@ -1088,9 +1088,13 @@ a { text-decoration: none; color: inherit; }
 }
 .quote-doc-band { height: 10px; background: linear-gradient(90deg, #0b2b83 0 68%, #98bd24 68% 100%); }
 .quote-doc-content { padding: 34px 38px 30px; }
-.quote-doc-header { display:flex; justify-content:space-between; gap:24px; align-items:flex-start; }
-.quote-doc-brand img { width: 205px; max-height: 116px; object-fit: contain; object-position: left center; }
-.quote-doc-title { text-align:right; }
+.quote-doc-header { display:flex; justify-content:space-between; gap:28px; align-items:flex-start; }
+.quote-doc-brand-block { min-width:0; flex:1; }
+.quote-doc-brand img { width: 205px; max-height: 108px; object-fit: contain; object-position: left center; }
+.quote-doc-business { margin-top:10px; display:flex; flex-direction:column; gap:3px; max-width:420px; }
+.quote-doc-business strong { color:#203047; font-size:13px; line-height:1.35; }
+.quote-doc-business span { color:#718096; font-size:10.5px; line-height:1.35; }
+.quote-doc-title { flex:0 0 auto; text-align:right; }
 .quote-doc-title h2 { margin:0 0 8px; color:#0b2b83; font-size:27px; letter-spacing:.5px; }
 .quote-doc-title strong { display:block; font-size:15px; }
 .quote-doc-title span { display:block; margin-top:5px; color:#6f8094; font-size:12px; }
@@ -1114,15 +1118,20 @@ a { text-decoration: none; color: inherit; }
 .quote-doc-total-row { display:flex; justify-content:space-between; gap:20px; padding:6px 0; font-size:13px; }
 .quote-doc-total-row.final { margin-top:5px; padding-top:11px; border-top:2px solid #98bd24; color:#0b2b83; font-size:18px; font-weight:800; }
 .quote-doc-notes { margin-top:22px; padding:13px 15px; border:1px solid #dce5ee; border-radius:7px; color:#56677a; font-size:11px; line-height:1.5; }
-.quote-doc-footer { margin-top:24px; padding-top:15px; border-top:1px solid #dfe7ef; display:flex; justify-content:space-between; gap:18px; color:#718096; font-size:10px; line-height:1.5; }
-.quote-doc-thanks { color:#0b2b83; font-weight:700; }
+.quote-doc-footer { margin-top:24px; padding-top:15px; border-top:1px solid #dfe7ef; display:flex; justify-content:space-between; align-items:flex-start; gap:22px; color:#718096; font-size:10px; line-height:1.5; }
+.quote-doc-footer > span:first-child { max-width:68%; }
+.quote-doc-thanks { color:#0b2b83; font-weight:700; text-align:right; white-space:nowrap; }
 @media (max-width: 680px) {
     .quote-share-modal { padding: 0; }
     .quote-share-card { height:100vh; max-height:none; border-radius:0; }
     .quote-share-body { padding:12px; }
     .quote-doc-content { padding:24px 20px; }
-    .quote-doc-header { flex-direction:column; }
+    .quote-doc-header { flex-direction:column; gap:18px; }
     .quote-doc-title { text-align:left; }
     .quote-doc-brand img { width:180px; }
+    .quote-doc-business { max-width:none; }
+    .quote-doc-footer { flex-direction:column; }
+    .quote-doc-footer > span:first-child { max-width:none; }
+    .quote-doc-thanks { text-align:left; white-space:normal; }
     .quote-share-actions .btn-app { flex:1 1 140px; justify-content:center; }
 }

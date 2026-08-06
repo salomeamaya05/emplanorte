@@ -228,10 +228,10 @@ const ApiClient = {
         return this.request(`/ventas/${id}/detalles`, { method: 'GET' });
     },
 
-    async anularVenta(id, idUsuario, contrasena) {
+    async anularVenta(id, idUsuario, contrasena, motivo, corregir = false) {
         return this.request(`/ventas/${id}/anular`, {
             method: 'POST',
-            body: JSON.stringify({ idUsuario, contrasena })
+            body: JSON.stringify({ idUsuario, contrasena, motivo, corregir })
         });
     },
 

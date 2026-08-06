@@ -96,6 +96,11 @@ CREATE TABLE ventas (
     metodo_pago         VARCHAR(30)     NOT NULL CHECK (metodo_pago IN ('efectivo', 'transferencia', 'tarjeta', 'credito', 'otro')),
     estado              VARCHAR(20)     NOT NULL DEFAULT 'completada' CHECK (estado IN ('completada', 'anulada')),
     observaciones       TEXT,
+    editada             BOOLEAN         NOT NULL DEFAULT FALSE,
+    fecha_ultima_edicion TIMESTAMP,
+    id_venta_origen     INT             REFERENCES ventas(id) ON DELETE SET NULL,
+    id_venta_reemplazo  INT             REFERENCES ventas(id) ON DELETE SET NULL,
+    motivo_anulacion    TEXT,
     creado_en           TIMESTAMP       NOT NULL DEFAULT NOW()
 );
 
@@ -123,10 +128,13 @@ CREATE TABLE auditoria_ventas (
     id_venta       INT             NOT NULL REFERENCES ventas(id),
     id_usuario     INT             REFERENCES usuarios(id),
     usuario_nombre VARCHAR(150),
-    accion         VARCHAR(20)     NOT NULL CHECK (accion IN ('creacion', 'anulacion')),
+    accion         VARCHAR(30)     NOT NULL CHECK (accion IN ('creacion', 'edicion', 'anulacion', 'anulacion_correccion', 'correccion_creada')),
     numero_venta   VARCHAR(20),
     total          DECIMAL(14,2),
     estado         VARCHAR(20),
+    motivo         TEXT,
+    detalle_cambios TEXT,
+    id_venta_relacionada INT       REFERENCES ventas(id) ON DELETE SET NULL,
     fecha_registro TIMESTAMP       NOT NULL DEFAULT NOW()
 );
 
@@ -211,6 +219,9 @@ CREATE INDEX idx_productos_busqueda     ON productos(activo, id_categoria);
 CREATE INDEX idx_productos_nombre       ON productos(nombre);
 CREATE INDEX idx_ventas_fecha           ON ventas(fecha_venta);
 CREATE INDEX idx_ventas_cliente         ON ventas(id_cliente);
+CREATE UNIQUE INDEX uq_ventas_id_venta_origen ON ventas(id_venta_origen) WHERE id_venta_origen IS NOT NULL;
+CREATE UNIQUE INDEX uq_ventas_id_venta_reemplazo ON ventas(id_venta_reemplazo) WHERE id_venta_reemplazo IS NOT NULL;
+CREATE INDEX idx_auditoria_ventas_fecha ON auditoria_ventas(id_venta, fecha_registro);
 CREATE INDEX idx_gastos_fecha           ON gastos(fecha_gasto);
 CREATE INDEX idx_cotizaciones_fecha     ON cotizaciones(fecha_cotizacion);
 

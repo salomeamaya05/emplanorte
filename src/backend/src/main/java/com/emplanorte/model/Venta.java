@@ -1,14 +1,14 @@
 package com.emplanorte.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @Entity
 @Table(name = "ventas")
@@ -35,6 +35,10 @@ public class Venta {
     @Column(name = "fecha_venta", nullable = false)
     private LocalDateTime fechaVenta;
 
+    /** Momento real en que el registro fue creado en el sistema. */
+    @Column(name = "creado_en", insertable = false, updatable = false)
+    private LocalDateTime fechaRegistro;
+
     @Column(nullable = false)
     private BigDecimal subtotal;
 
@@ -58,6 +62,24 @@ public class Venta {
 
     @Column(columnDefinition = "TEXT")
     private String observaciones;
+
+    /** Indica que se corrigieron únicamente datos administrativos. */
+    @Column(nullable = false)
+    private Boolean editada = false;
+
+    @Column(name = "fecha_ultima_edicion")
+    private LocalDateTime fechaUltimaEdicion;
+
+    /** Venta anulada que dio origen a esta venta corregida. */
+    @Column(name = "id_venta_origen")
+    private Long idVentaOrigen;
+
+    /** Nueva venta que reemplazó a esta venta después de anularla. */
+    @Column(name = "id_venta_reemplazo")
+    private Long idVentaReemplazo;
+
+    @Column(name = "motivo_anulacion", columnDefinition = "TEXT")
+    private String motivoAnulacion;
 
     @JsonManagedReference
     @OneToMany(mappedBy = "venta", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

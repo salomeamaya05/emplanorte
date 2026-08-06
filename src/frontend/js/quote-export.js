@@ -10,23 +10,37 @@ const QuoteExport = (() => {
         light: '#f4f7fa', line: '#dfe7ef', white: '#ffffff'
     };
 
+    const BUSINESS = {
+        name: 'EMPLANORTE S.A.S. – Punto de Venta Ibagué',
+        address: 'Calle 31 #7-09, Carmenza Rocha, Ibagué, Tolima',
+        phones: '310 267 5612 – 300 522 4818',
+        notice: 'Documento informativo de cotización. Los valores, disponibilidad y condiciones están sujetos a cambios sin previo aviso.'
+    };
+
     const money = value => formatCurrency(Number(value) || 0);
     const safe = value => escapeSearchableHtml(value == null ? '' : value);
 
-    function normalize(quote, details) {
-        const subtotal = Number(quote.subtotal) || details.reduce((sum, d) => sum + (Number(d.subtotalLinea) || (Number(d.cantidad) || 0) * (Number(d.precioUnitario) || 0)), 0);
-        const total = Number(quote.total) || 0;
-        const discount = Math.max(0, Number(quote.descuento) || Math.max(0, subtotal - total));
+    function normalize(documentData, details) {
+        const sourceIsSale = Boolean(documentData.numeroVenta) && !documentData.numeroCotizacion;
+        const subtotal = Number(documentData.subtotal) || details.reduce((sum, d) => sum + (Number(d.subtotalLinea) || (Number(d.cantidad) || 0) * (Number(d.precioUnitario) || 0)), 0);
+        const total = Number(documentData.total) || 0;
+        const discount = Math.max(0, Number(documentData.descuento) || Math.max(0, subtotal - total));
+        const number = documentData.numeroCotizacion
+            || documentData.numeroVenta
+            || `COT-${String(documentData.id || '').padStart(6, '0')}`;
+
         return {
-            id: quote.id,
-            number: quote.numeroCotizacion || `COT-${String(quote.id || '').padStart(6, '0')}`,
-            date: quote.fechaCotizacion || new Date().toISOString(),
+            id: documentData.id,
+            number,
+            referenceLabel: 'Cotización N.°',
+            origin: sourceIsSale ? 'venta' : 'cotizacion',
+            date: documentData.fechaCotizacion || documentData.fechaVenta || new Date().toISOString(),
             customer: {
-                name: quote.cliente?.nombre || 'Cliente',
-                phone: quote.cliente?.telefono || '',
-                address: quote.cliente?.direccion || ''
+                name: documentData.cliente?.nombre || 'Cliente',
+                phone: documentData.cliente?.telefono || '',
+                address: documentData.cliente?.direccion || ''
             },
-            notes: quote.notas || '',
+            notes: documentData.notas || documentData.observaciones || '',
             subtotal,
             discount,
             total: total || Math.max(0, subtotal - discount),
@@ -80,9 +94,17 @@ const QuoteExport = (() => {
                 <div class="quote-doc-band"></div>
                 <div class="quote-doc-content">
                     <header class="quote-doc-header">
-                        <div class="quote-doc-brand"><img src="../img/Logo.png" alt="EMPLANORTE"></div>
+                        <div class="quote-doc-brand-block">
+                            <div class="quote-doc-brand"><img src="../img/Logo.png" alt="EMPLANORTE"></div>
+                            <div class="quote-doc-business">
+                                <strong>${safe(BUSINESS.name)}</strong>
+                                <span>${safe(BUSINESS.address)}</span>
+                                <span>${safe(BUSINESS.phones)}</span>
+                            </div>
+                        </div>
                         <div class="quote-doc-title">
                             <h2>COTIZACIÓN</h2>
+                            <small>${safe(vm.referenceLabel)}</small>
                             <strong>${safe(vm.number)}</strong>
                             <span>${formatDate(vm.date)}</span>
                         </div>
@@ -103,8 +125,8 @@ const QuoteExport = (() => {
                     </section>
                     ${vm.notes ? `<section class="quote-doc-notes"><strong>Observaciones:</strong> ${safe(vm.notes)}</section>` : ''}
                     <footer class="quote-doc-footer">
-                        <span>Valores expresados en pesos colombianos. Cotización sujeta a disponibilidad al momento de confirmar el pedido.</span>
-                        <span class="quote-doc-thanks">Gracias por confiar en EMPLANORTE.</span>
+                        <span>${safe(BUSINESS.notice)}</span>
+                        <span class="quote-doc-thanks">EMPLANORTE S.A.S. · Ibagué, Tolima</span>
                     </footer>
                 </div>
             </article>`;
@@ -172,7 +194,7 @@ const QuoteExport = (() => {
         const margin = 72;
         const itemHeight = 64;
         const notesHeight = vm.notes ? Math.max(86, 34 + Math.ceil(vm.notes.length / 95) * 28) : 0;
-        const height = 330 + 58 + vm.items.length * itemHeight + 205 + notesHeight + 130;
+        const height = 380 + 58 + vm.items.length * itemHeight + 205 + notesHeight + 145;
         const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
@@ -187,20 +209,30 @@ const QuoteExport = (() => {
         let logo = null;
         try { logo = await loadImage('../img/Logo.png'); } catch (error) { console.warn('No se pudo cargar el logo:', error); }
         if (logo) {
-            const boxW = 300, boxH = 170;
+            const boxW = 270, boxH = 115;
             const ratio = Math.min(boxW / logo.naturalWidth, boxH / logo.naturalHeight);
-            ctx.drawImage(logo, margin, 50, logo.naturalWidth * ratio, logo.naturalHeight * ratio);
+            ctx.drawImage(logo, margin, 42, logo.naturalWidth * ratio, logo.naturalHeight * ratio);
         } else {
-            ctx.fillStyle = COLORS.navy; ctx.font = '700 44px Arial'; ctx.fillText('EMPLANORTE', margin, 120);
+            ctx.fillStyle = COLORS.navy; ctx.font = '700 42px Arial'; ctx.fillText('EMPLANORTE', margin, 105);
         }
 
+        ctx.textAlign = 'left';
+        ctx.fillStyle = COLORS.dark;
+        ctx.font = '700 18px Arial';
+        ctx.fillText(BUSINESS.name, margin, 180);
+        ctx.fillStyle = COLORS.muted;
+        ctx.font = '400 15px Arial';
+        ctx.fillText(BUSINESS.address, margin, 205);
+        ctx.fillText(BUSINESS.phones, margin, 229);
+
         ctx.textAlign = 'right';
-        ctx.fillStyle = COLORS.navy; ctx.font = '800 45px Arial'; ctx.fillText('COTIZACIÓN', width - margin, 85);
-        ctx.fillStyle = COLORS.dark; ctx.font = '700 24px Arial'; ctx.fillText(vm.number, width - margin, 125);
-        ctx.fillStyle = COLORS.muted; ctx.font = '400 18px Arial'; ctx.fillText(formatDate(vm.date), width - margin, 158);
+        ctx.fillStyle = COLORS.navy; ctx.font = '800 45px Arial'; ctx.fillText('COTIZACIÓN', width - margin, 78);
+        ctx.fillStyle = COLORS.muted; ctx.font = '600 14px Arial'; ctx.fillText(vm.referenceLabel, width - margin, 111);
+        ctx.fillStyle = COLORS.dark; ctx.font = '700 24px Arial'; ctx.fillText(vm.number, width - margin, 140);
+        ctx.fillStyle = COLORS.muted; ctx.font = '400 18px Arial'; ctx.fillText(formatDate(vm.date), width - margin, 172);
         ctx.textAlign = 'left';
 
-        const customerY = 220;
+        const customerY = 265;
         roundRect(ctx, margin, customerY, width - margin * 2, 108, 12, COLORS.light, null);
         ctx.fillStyle = COLORS.green; ctx.fillRect(margin, customerY, 7, 108);
         ctx.fillStyle = COLORS.muted; ctx.font = '700 15px Arial'; ctx.fillText('PREPARADA PARA', margin + 28, customerY + 31);
@@ -208,7 +240,7 @@ const QuoteExport = (() => {
         const meta = [vm.customer.phone, vm.customer.address].filter(Boolean).join(' · ');
         if (meta) { ctx.fillStyle = COLORS.muted; ctx.font = '400 16px Arial'; ctx.fillText(truncate(ctx, meta, 950), margin + 28, customerY + 92); }
 
-        let y = 362;
+        let y = 407;
         const cols = [margin, 690, 820, 1000, width - margin];
         ctx.fillStyle = COLORS.navy; ctx.fillRect(margin, y, width - margin * 2, 50);
         ctx.fillStyle = COLORS.white; ctx.font = '700 15px Arial';
@@ -256,15 +288,16 @@ const QuoteExport = (() => {
 
         y += 48; ctx.strokeStyle = COLORS.line; ctx.beginPath(); ctx.moveTo(margin, y); ctx.lineTo(width - margin, y); ctx.stroke();
         y += 38; ctx.fillStyle = COLORS.muted; ctx.font = '400 14px Arial'; ctx.textAlign = 'left';
-        const footerLines = wrapText(ctx, 'Valores expresados en pesos colombianos. Cotización sujeta a disponibilidad al momento de confirmar el pedido.', 690);
+        const footerLines = wrapText(ctx, BUSINESS.notice, 720);
         footerLines.forEach((line, index) => ctx.fillText(line, margin, y + index * 20));
-        ctx.fillStyle = COLORS.navy; ctx.font = '700 16px Arial'; ctx.textAlign = 'right'; ctx.fillText('Gracias por confiar en EMPLANORTE.', width - margin, y + 5);
+        ctx.fillStyle = COLORS.navy; ctx.font = '700 15px Arial'; ctx.textAlign = 'right';
+        ctx.fillText('EMPLANORTE S.A.S. · Ibagué, Tolima', width - margin, y + 5);
         return canvas;
     }
 
     function filename(extension) {
         const clean = String(current?.number || 'cotizacion').replace(/[^a-z0-9_-]+/gi, '_');
-        return `${clean}_EMPLANORTE.${extension}`;
+        return `Cotizacion_${clean}_EMPLANORTE.${extension}`;
     }
 
     async function canvasBlob() {
@@ -291,7 +324,7 @@ const QuoteExport = (() => {
                 await navigator.share({
                     files: [file],
                     title: `Cotización ${current.number} - EMPLANORTE`,
-                    text: `Cotización ${current.number} preparada por EMPLANORTE.`
+                    text: `Cotización preparada por EMPLANORTE. Referencia: ${current.number}.`
                 });
             } else {
                 await downloadPng();
