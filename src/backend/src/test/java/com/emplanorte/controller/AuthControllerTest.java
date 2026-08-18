@@ -47,7 +47,7 @@ import com.emplanorte.config.SecurityConfig;
 class AuthControllerTest {
 
     private static final String MSG_OBLIGATORIOS = "El correo y la contraseña son obligatorios";
-    private static final String MSG_CREDENCIALES = "Credenciales incorrectas o usuario inactivo";
+    private static final String MSG_CREDENCIALES = "Correo o contraseña incorrectos";
     private static final String CORREO_OK = "duvan@emplanorte.com";
     private static final String CLAVE_OK = "Admin2024*";
 
@@ -374,26 +374,27 @@ class AuthControllerTest {
         }
 
         @Test
-        @DisplayName("CP-47: tras 5 intentos fallidos el 6º se bloquea con 429")
-        void login_cincoIntentosFallidos_bloquea() throws Exception {
+        @DisplayName("CP-47: el intento fallido número 10 activa el bloqueo temporal con 429")
+        void login_diezIntentosFallidos_bloquea() throws Exception {
             when(authService.login(any(), any())).thenReturn(Optional.empty());
 
             Map<String, String> credsMalas = new HashMap<>();
             credsMalas.put("correo", CORREO_OK);
             credsMalas.put("contrasena", "claveErrada");
 
-            for (int i = 0; i < 5; i++) {
+            for (int i = 0; i < 9; i++) {
                 mockMvc.perform(post("/api/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(json(credsMalas)))
                         .andExpect(status().isUnauthorized());
             }
 
-            // 6º intento: bloqueado
+            // 10º intento fallido: activa el bloqueo temporal.
             mockMvc.perform(post("/api/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(json(credsMalas)))
-                    .andExpect(status().isTooManyRequests());
+                    .andExpect(status().isTooManyRequests())
+                    .andExpect(content().string(Matchers.containsString("Espere 15 minutos")));
         }
 
         @Test

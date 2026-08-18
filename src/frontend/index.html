@@ -10,15 +10,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Estilos base y de login -->
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles.css?v=2.4.0">
 </head>
-<body class="login-body">
-
-    <div class="login-background">
-        <div class="circle circle-1"></div>
-        <div class="circle circle-2"></div>
-    </div>
-<body class="login-page">
+<body class="login-body login-page">
 
     <div class="login-background">
         <span class="bg-wave wave-1"></span>
@@ -75,7 +69,7 @@
     </main>
 
     <!-- Scripts de lógica base -->
-    <script src="js/api.js"></script>
+    <script src="js/api.js?v=2.4.0"></script>
     <script>
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -85,6 +79,7 @@
             const btn = document.getElementById('btnLogin');
             
             errorMsg.classList.add('hidden');
+            errorMsg.classList.remove('show');
             btn.disabled = true;
             btn.classList.add('loading');
 
@@ -98,6 +93,7 @@
                 } else {
                     errorMsg.textContent = response.message || 'Credenciales incorrectas';
                     errorMsg.classList.remove('hidden');
+                    errorMsg.classList.add('show');
                 }
             } catch (err) {
                 // Distinguir entre "backend caído" y un error devuelto por el backend.
@@ -110,6 +106,7 @@
                     errorMsg.textContent = err.message || 'Ocurrió un error al iniciar sesión.';
                 }
                 errorMsg.classList.remove('hidden');
+                errorMsg.classList.add('show');
                 console.error(err);
             } finally {
                 btn.disabled = false;

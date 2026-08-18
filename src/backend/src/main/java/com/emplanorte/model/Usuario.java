@@ -1,6 +1,7 @@
 package com.emplanorte.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
@@ -22,6 +23,7 @@ public class Usuario {
     @Column(nullable = false, length = 150, unique = true)
     private String correo;
 
+    @JsonIgnore
     @Column(name = "contrasena_hash", nullable = false)
     private String contrasenaHash;
 

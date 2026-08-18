@@ -2,831 +2,362 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EMPLANORTE - Dashboard</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>EMPLANORTE - Dashboard Financiero</title>
     <link rel="icon" type="image/png" href="../img/Logo.png">
-    <!-- Google Fonts: Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Estilos -->
-    <link rel="stylesheet" href="../css/styles.css">
-    <link rel="stylesheet" href="../css/app.css">
-    <style>
-        /* === Sección de Gráficas === */
-        .charts-section { margin-bottom: 24px; }
-        .charts-header {
-            display: flex; align-items: center;
-            justify-content: space-between;
-            margin-bottom: 14px; flex-wrap: wrap; gap: 10px;
-        }
-        .charts-header h3 {
-            font-size: 15px; font-weight: 700; color: var(--text-dark);
-        }
-        .period-tabs {
-            display: flex; gap: 3px;
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-radius: var(--radius-md); padding: 3px;
-        }
-        .period-tab {
-            padding: 5px 13px; font-size: 12px; font-weight: 600;
-            border: none; border-radius: var(--radius-sm); cursor: pointer;
-            background: transparent; color: var(--text-medium);
-            font-family: var(--font-sans); transition: var(--transition);
-            white-space: nowrap;
-        }
-        .period-tab:hover { background: var(--sidebar-hover-bg); }
-        .period-tab.active { background: var(--primary); color: #fff; }
-        .chart-card {
-            background: var(--card-bg); border: 1px solid var(--card-border);
-            border-radius: var(--radius-lg); box-shadow: var(--card-shadow); overflow: hidden;
-        }
-        .chart-card-header {
-            display: flex; align-items: center;
-            justify-content: space-between; padding: 13px 16px 8px;
-        }
-        .chart-title { font-size: 13px; font-weight: 700; color: var(--text-dark); }
-        .chart-legend-inline {
-            display: flex; gap: 12px;
-            font-size: 11px; color: var(--text-medium); font-weight: 500;
-        }
-        .legend-item { display: flex; align-items: center; gap: 5px; }
-        .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-        .chart-canvas-box { height: 220px; padding: 4px 16px 14px; }
-        .chart-canvas-box-sm { height: 200px; padding: 4px 16px 14px; }
-        .charts-row {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px;
-        }
-        @media (max-width: 768px) {
-            .charts-row { grid-template-columns: 1fr; }
-            .chart-canvas-box { height: 180px; }
-            .chart-canvas-box-sm { height: 160px; }
-            .period-tabs { flex-wrap: wrap; }
-        }
-    </style>
+    <link rel="stylesheet" href="../css/app.css?v=2.4.0">
+    <link rel="stylesheet" href="../css/finance.css?v=2.3.0">
 </head>
 <body class="app-body">
-    <div class="app-layout">
-
-        <!-- Main Content -->
-        <div class="main-content">
-
-            <!-- Page Header -->
-            <div class="page-header">
-                <h1 class="page-title">Dashboard</h1>
-                <div class="page-actions">
-                    <button class="btn-app btn-app-outline" id="btnDescargar">
-                        📥 Descargar reporte
-                    </button>
-                </div>
+<main class="main-content">
+    <div class="fin-page">
+        <div class="fin-header">
+            <div class="fin-title">
+                <h1>Resumen financiero</h1>
+                <p>Una vista compacta de ventas, costos, gastos, inventario y obligaciones.</p>
             </div>
+        </div>
 
-            <!-- Page Body -->
-            <div class="page-body">
+        <div class="dashboard-toolbar">
+            <div class="dashboard-filter-group">
+                <label for="desde">Desde</label>
+                <input class="fin-input" type="date" id="desde">
+                <label for="hasta">Hasta</label>
+                <input class="fin-input" type="date" id="hasta">
+                <button class="fin-btn fin-btn-primary" id="btnActualizar" onclick="cargar()">Actualizar</button>
+            </div>
+            <div class="dashboard-report-group">
+                <span class="dashboard-report-note">Reportes del período:</span>
+                <button class="fin-btn fin-btn-light" id="btnPdf" onclick="descargarPDF()">📄 PDF</button>
+                <button class="fin-btn fin-btn-light" id="btnExcel" onclick="descargarExcel()">📊 Excel</button>
+            </div>
+        </div>
 
-                <!-- Filter Bar -->
-                <div class="filter-bar">
-                    <label style="font-size:13px; font-weight:600; color:var(--text-medium);">Desde:</label>
-                    <input type="date" id="filtroDesde">
-                    <label style="font-size:13px; font-weight:600; color:var(--text-medium);">Hasta:</label>
-                    <input type="date" id="filtroHasta">
-                    <button class="btn-app btn-app-primary btn-app-sm" id="btnFiltrar">
-                        🔄 Aplicar
-                    </button>
+        <div class="dashboard-section-title">
+            <h2>Resultado del período</h2>
+            <span id="periodoTexto">—</span>
+        </div>
+
+        <section class="fin-grid dashboard-primary">
+            <article class="fin-kpi" title="Dinero de ventas completadas. No incluye ventas anuladas.">
+                <div class="fin-kpi-icon">💰</div>
+                <div><div class="fin-kpi-label">Ventas netas</div><div class="fin-kpi-value" id="vVentas">$ 0</div><div class="fin-kpi-note" id="nVentas">0 ventas completadas</div></div>
+            </article>
+            <article class="fin-kpi" title="Ventas netas menos el costo de los productos vendidos.">
+                <div class="fin-kpi-icon">📈</div>
+                <div><div class="fin-kpi-label">Ganancia bruta</div><div class="fin-kpi-value" id="vBruta">$ 0</div><div class="fin-kpi-note">Antes de gastos operativos</div></div>
+            </article>
+            <article class="fin-kpi" title="Ganancia bruta menos gastos operativos.">
+                <div class="fin-kpi-icon">✨</div>
+                <div><div class="fin-kpi-label">Ganancia neta</div><div class="fin-kpi-value" id="vNeta">$ 0</div><div class="fin-kpi-note">Resultado real del período</div></div>
+            </article>
+            <article class="fin-kpi" title="Compras de mercancía registradas durante el período. No incluye compras anuladas.">
+                <div class="fin-kpi-icon">🛒</div>
+                <div><div class="fin-kpi-label">Compras del período</div><div class="fin-kpi-value" id="vCompras">$ 0</div><div class="fin-kpi-note">Inversión nueva en mercancía</div></div>
+            </article>
+        </section>
+
+        <section class="fin-grid dashboard-secondary">
+            <article class="fin-kpi"><div class="fin-kpi-icon">📦</div><div><div class="fin-kpi-label">Costo de lo vendido</div><div class="fin-kpi-value" id="vCosto">$ 0</div><div class="fin-kpi-note">Costo recuperado en ventas</div></div></article>
+            <article class="fin-kpi"><div class="fin-kpi-icon">📋</div><div><div class="fin-kpi-label">Gastos operativos</div><div class="fin-kpi-value" id="vGastos">$ 0</div><div class="fin-kpi-note">No incluye compras</div></div></article>
+            <article class="fin-kpi"><div class="fin-kpi-icon">🏷️</div><div><div class="fin-kpi-label">Inventario al costo</div><div class="fin-kpi-value" id="vInventario">$ 0</div><div class="fin-kpi-note">Mercancía disponible</div></div></article>
+            <article class="fin-kpi"><div class="fin-kpi-icon">🧾</div><div><div class="fin-kpi-label">Cuentas por pagar</div><div class="fin-kpi-value" id="vPagar">$ 0</div><div class="fin-kpi-note">Facturas pendientes y parciales</div></div></article>
+        </section>
+
+        <section class="fin-grid fin-two">
+            <article class="fin-panel">
+                <div class="fin-panel-head">
+                    <div><h3>Movimiento del negocio</h3><div class="fin-muted" style="font-size:10px;margin-top:2px">Ventas, compras, gastos y ganancia neta</div></div>
                 </div>
+                <div class="fin-chart"><canvas id="chartBalance"></canvas></div>
+            </article>
 
-                <!-- Summary Cards -->
-                <div class="summary-cards">
-                    <!-- Balance -->
-                    <div class="summary-card">
-                        <div class="card-icon icon-primary">💰</div>
-                        <div class="card-info">
-                            <div class="card-label">Balance</div>
-                            <div class="card-value" id="cardBalance">$ 0</div>
-                        </div>
+            <article class="fin-panel">
+                <div class="fin-panel-head"><h3>Estado operativo</h3></div>
+                <div class="fin-modal-body">
+                    <div class="fin-stat-list">
+                        <div class="fin-stat-row"><span class="fin-stat-name">Inversión registrada en compras</span><span class="fin-stat-value" id="vInvertido">$ 0</span></div>
+                        <div class="fin-stat-row"><span class="fin-stat-name">Costo recuperado históricamente</span><span class="fin-stat-value" id="vRecuperado">$ 0</span></div>
+                        <div class="fin-stat-row"><span class="fin-stat-name">Mercancía disponible al costo</span><span class="fin-stat-value" id="vInv2">$ 0</span></div>
                     </div>
-                    <!-- Ventas Totales -->
-                    <div class="summary-card">
-                        <div class="card-icon icon-success">📈</div>
-                        <div class="card-info">
-                            <div class="card-label">Ventas Totales</div>
-                            <div class="card-value" id="cardVentas">$ 0</div>
-                        </div>
-                    </div>
-                    <!-- Gastos Totales -->
-                    <div class="summary-card">
-                        <div class="card-icon icon-danger">📉</div>
-                        <div class="card-info">
-                            <div class="card-label">Gastos Totales</div>
-                            <div class="card-value" id="cardGastos">$ 0</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Charts Section -->
-                <div class="charts-section">
-                    <div class="charts-header">
-                        <h3>Análisis Financiero</h3>
-                        <div class="period-tabs" id="periodTabs">
-                            <button class="period-tab active" data-period="semana">Esta Semana</button>
-                            <button class="period-tab" data-period="mes">Este Mes</button>
-                            <button class="period-tab" data-period="año">Este Año</button>
-                            <button class="period-tab" data-period="dia">Hoy</button>
-                        </div>
-                    </div>
-
-                    <!-- Gráfica de barras: Ventas vs Gastos (ancho completo) -->
-                    <div class="chart-card" style="margin-bottom:16px;">
-                        <div class="chart-card-header">
-                            <span class="chart-title">Ventas vs Gastos</span>
-                            <div class="chart-legend-inline">
-                                <span class="legend-item">
-                                    <span class="legend-dot" style="background:#38a169;"></span>Ventas
-                                </span>
-                                <span class="legend-item">
-                                    <span class="legend-dot" style="background:#e53e3e;"></span>Gastos
-                                </span>
-                            </div>
-                        </div>
-                        <div class="chart-canvas-box">
-                            <canvas id="chartVentasGastos"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- Fila inferior: Ganancia + Gastos por categoría -->
-                    <div class="charts-row">
-                        <div class="chart-card">
-                            <div class="chart-card-header">
-                                <span class="chart-title">Tendencia de Ganancia</span>
-                                <span class="legend-item">
-                                    <span class="legend-dot" style="background:#3182ce;"></span>
-                                    <span style="font-size:11px;color:var(--text-medium);font-weight:500;">Ganancia neta</span>
-                                </span>
-                            </div>
-                            <div class="chart-canvas-box-sm">
-                                <canvas id="chartBalance"></canvas>
-                            </div>
-                        </div>
-                        <div class="chart-card">
-                            <div class="chart-card-header">
-                                <span class="chart-title">Gastos por Categoría</span>
-                            </div>
-                            <div class="chart-canvas-box-sm">
-                                <canvas id="chartGastosCategoria"></canvas>
-                            </div>
-                        </div>
+                    <div class="dashboard-capital-note" id="textoCapital">Las compras registradas desde este módulo permiten medir cuánto capital se ha invertido y recuperado.</div>
+                    <div class="dashboard-status-strip">
+                        <div class="dashboard-status"><strong id="aVencidas">0</strong><span>Facturas vencidas</span></div>
+                        <div class="dashboard-status"><strong id="aProximas">0</strong><span>Vencen en 7 días</span></div>
+                        <div class="dashboard-status"><strong id="aStock">0</strong><span>Productos con stock bajo</span></div>
                     </div>
                 </div>
+            </article>
+        </section>
 
-                <!-- Tab Navigation -->
-                <div class="tab-nav">
-                    <div class="tab-item active" data-tab="ventas">Últimas Ventas</div>
-                    <div class="tab-item" data-tab="gastos">Últimos Gastos</div>
-                </div>
+        <section class="fin-grid fin-two dashboard-bottom">
+            <article class="fin-panel">
+                <div class="fin-panel-head"><h3>Proveedores con mayor inversión</h3><a href="proveedores.html" style="font-size:11px;color:#3182ce;font-weight:700">Ver proveedores</a></div>
+                <div class="fin-modal-body"><div class="fin-stat-list" id="topProveedores"></div></div>
+            </article>
+            <article class="fin-panel">
+                <div class="fin-panel-head"><h3>Alertas de facturas</h3><a href="facturas-proveedores.html" style="font-size:11px;color:#3182ce;font-weight:700">Ver facturas</a></div>
+                <div id="alertas"></div>
+            </article>
+        </section>
+    </div>
+</main>
 
-                <!-- Data Section: Ventas -->
-                <div class="data-section" id="tabVentas">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Fecha</th>
-                                <th>Cliente</th>
-                                <th>Total</th>
-                                <th>Ganancia</th>
-                                <th>Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbodyVentas">
-                        </tbody>
-                    </table>
-                    <!-- Empty State Ventas -->
-                    <div class="empty-state hidden" id="emptyVentas">
-                        <div class="empty-icon">🛒</div>
-                        <div class="empty-title">No hay ventas registradas</div>
-                        <div class="empty-desc">Las ventas recientes aparecerán aquí una vez que registres tu primera venta.</div>
-                    </div>
-                </div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="../js/vendor/jspdf.umd.min.js"></script>
+<script src="../js/vendor/jspdf.plugin.autotable.min.js"></script>
+<script src="../js/api.js?v=2.4.0"></script>
+<script src="../js/utils.js?v=2.4.0"></script>
+<script>
+checkSession();
+renderSidebar('dashboard');
 
-                <!-- Data Section: Gastos -->
-                <div class="data-section hidden" id="tabGastos">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Fecha</th>
-                                <th>Categoría</th>
-                                <th>Descripción</th>
-                                <th>Valor</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbodyGastos">
-                        </tbody>
-                    </table>
-                    <!-- Empty State Gastos -->
-                    <div class="empty-state hidden" id="emptyGastos">
-                        <div class="empty-icon">📋</div>
-                        <div class="empty-title">No hay gastos registrados</div>
-                        <div class="empty-desc">Los gastos recientes aparecerán aquí una vez que registres tu primer gasto.</div>
-                    </div>
-                </div>
+let grafica = null;
+let balanceActual = null;
+const num = v => Number(v) || 0;
+const esc = v => String(v ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 
-            </div><!-- /.page-body -->
-        </div><!-- /.main-content -->
-    </div><!-- /.app-layout -->
+function inicializarFechas() {
+    const hoy = new Date();
+    const inicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    desde.value = inicio.toISOString().slice(0, 10);
+    hasta.value = hoy.toISOString().slice(0, 10);
+}
 
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <!-- Generación de PDF (local, funciona sin internet) -->
-    <script src="../js/vendor/jspdf.umd.min.js"></script>
-    <script src="../js/vendor/jspdf.plugin.autotable.min.js"></script>
-    <script src="../js/api.js"></script>
-    <script src="../js/utils.js"></script>
-    <script>
-        // ---- Inicialización ----
-        checkSession();
-        renderSidebar('dashboard');
+function fechaLegible(valor) {
+    if (!valor) return '-';
+    return new Date(valor + 'T00:00:00').toLocaleDateString('es-CO');
+}
 
-        // ---- Estado de la página ----
-        let ventasData = [];
-        let gastosData = [];
-        let activeTab = 'ventas';
+function monedaPlano(valor) {
+    return '$ ' + Math.round(num(valor)).toLocaleString('es-CO');
+}
 
-        // ---- Elementos DOM ----
-        const filtroDesde = document.getElementById('filtroDesde');
-        const filtroHasta = document.getElementById('filtroHasta');
-        const btnFiltrar = document.getElementById('btnFiltrar');
-        const btnDescargar = document.getElementById('btnDescargar');
+async function cargar() {
+    btnActualizar.disabled = true;
+    try {
+        const r = await ApiClient.obtenerBalanceCompleto(desde.value, hasta.value);
+        balanceActual = r;
+        periodoTexto.textContent = `${fechaLegible(desde.value)} al ${fechaLegible(hasta.value)}`;
+        vVentas.textContent = formatCurrency(r.ventasNetas);
+        nVentas.textContent = `${r.numeroVentas || 0} ventas completadas`;
+        vCosto.textContent = formatCurrency(r.costoVentas);
+        vBruta.textContent = formatCurrency(r.gananciaBruta);
+        vNeta.textContent = formatCurrency(r.gananciaNeta);
+        vNeta.style.color = num(r.gananciaNeta) < 0 ? '#c53030' : '#263548';
+        vCompras.textContent = formatCurrency(r.comprasPeriodo);
+        vGastos.textContent = formatCurrency(r.gastosOperativos);
+        vInventario.textContent = vInv2.textContent = formatCurrency(r.inventarioValorizado);
+        vPagar.textContent = formatCurrency(r.cuentasPorPagar);
+        vInvertido.textContent = formatCurrency(r.capitalInvertidoAcumulado);
+        vRecuperado.textContent = formatCurrency(r.capitalRecuperadoAcumulado);
+        aVencidas.textContent = r.facturasVencidas || 0;
+        aProximas.textContent = r.facturasPorVencer || 0;
+        aStock.textContent = r.productosStockBajo || 0;
 
-        const cardBalance = document.getElementById('cardBalance');
-        const cardVentas = document.getElementById('cardVentas');
-        const cardGastos = document.getElementById('cardGastos');
-
-        const tbodyVentas = document.getElementById('tbodyVentas');
-        const tbodyGastos = document.getElementById('tbodyGastos');
-        const tabVentas = document.getElementById('tabVentas');
-        const tabGastos = document.getElementById('tabGastos');
-        const emptyVentas = document.getElementById('emptyVentas');
-        const emptyGastos = document.getElementById('emptyGastos');
-
-        // ---- Defaults: primer día del mes actual hasta hoy ----
-        function primerDiaMes() {
-            const d = new Date();
-            return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+        if (num(r.capitalInvertidoAcumulado) > 0) {
+            const pct = Math.min(100, num(r.capitalRecuperadoAcumulado) / num(r.capitalInvertidoAcumulado) * 100);
+            textoCapital.textContent = `${pct.toFixed(1)} % de la inversión registrada se ha reconocido como costo en ventas. El inventario restante conserva valor económico.`;
+        } else {
+            textoCapital.textContent = 'Todavía no existen compras registradas en el módulo nuevo. El inventario actual sí tiene valor, pero la inversión histórica anterior no está documentada como compra.';
         }
 
-        filtroDesde.value = primerDiaMes();
-        filtroHasta.value = todayISO();
+        dibujar(r.serieMensual || []);
+        renderTop(r.proveedoresTop || []);
+        renderAlertas(r.alertasFacturas || []);
+    } catch (e) {
+        showToast(e.message, 'error');
+    } finally {
+        btnActualizar.disabled = false;
+    }
+}
 
-        // ---- Cargar Resumen Dashboard ----
-        async function cargarResumen() {
-            const desde = filtroDesde.value;
-            const hasta = filtroHasta.value;
-
-            try {
-                const resumen = await ApiClient.obtenerResumenDashboard(desde, hasta);
-                const totalVentas = Number(resumen.totalVentas) || 0;
-                const totalGastos = Number(resumen.totalGastos) || 0;
-                const balance = totalVentas - totalGastos;
-
-                cardBalance.textContent = formatCurrency(balance);
-                cardVentas.textContent = formatCurrency(totalVentas);
-                cardGastos.textContent = formatCurrency(totalGastos);
-
-                // Color del balance según sea positivo o negativo
-                if (balance >= 0) {
-                    cardBalance.classList.remove('text-danger');
-                    cardBalance.classList.add('text-success');
-                } else {
-                    cardBalance.classList.remove('text-success');
-                    cardBalance.classList.add('text-danger');
-                }
-            } catch (err) {
-                showToast('Error al cargar el resumen del dashboard', 'error');
-                console.error(err);
+function dibujar(serie) {
+    if (grafica) grafica.destroy();
+    const ctx = document.getElementById('chartBalance');
+    grafica = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: serie.map(x => x.etiqueta),
+            datasets: [
+                {label:'Ventas', data:serie.map(x=>num(x.ventas)), borderColor:'#2f855a', backgroundColor:'rgba(47,133,90,.08)', tension:.25, borderWidth:2, pointRadius:3},
+                {label:'Compras', data:serie.map(x=>num(x.compras)), borderColor:'#6b46c1', backgroundColor:'rgba(107,70,193,.06)', tension:.25, borderWidth:2, pointRadius:3},
+                {label:'Gastos', data:serie.map(x=>num(x.gastos)), borderColor:'#c53030', backgroundColor:'rgba(197,48,48,.06)', tension:.25, borderWidth:2, pointRadius:3},
+                {label:'Ganancia neta', data:serie.map(x=>num(x.gananciaNeta)), borderColor:'#2b6cb0', backgroundColor:'rgba(43,108,176,.06)', tension:.25, borderWidth:2, pointRadius:3}
+            ]
+        },
+        options: {
+            responsive:true,
+            maintainAspectRatio:false,
+            interaction:{mode:'index',intersect:false},
+            plugins:{legend:{position:'bottom',labels:{boxWidth:10,usePointStyle:true,font:{size:10}}}},
+            scales:{
+                x:{grid:{display:false},ticks:{font:{size:10}}},
+                y:{beginAtZero:true,ticks:{font:{size:10},callback:v=>'$ '+Number(v).toLocaleString('es-CO')}}
             }
         }
+    });
+}
 
-        // ---- Cargar Ventas Recientes ----
-        async function cargarVentas() {
-            try {
-                const ventas = await ApiClient.listarVentas();
-                ventasData = Array.isArray(ventas) ? ventas : [];
-                renderTablaVentas();
-            } catch (err) {
-                showToast('Error al cargar las ventas', 'error');
-                console.error(err);
-            }
-        }
+function renderTop(list) {
+    const max = Math.max(1, ...list.map(x => num(x.totalComprado)));
+    topProveedores.innerHTML = list.length ? list.map(x => `
+        <div>
+            <div class="fin-stat-row"><span class="fin-stat-name">${esc(x.razonSocial)}</span><span class="fin-stat-value">${formatCurrency(x.totalComprado)}</span></div>
+            <div class="fin-progress" style="margin-top:4px"><span style="width:${num(x.totalComprado)/max*100}%"></span></div>
+        </div>`).join('') : '<div class="fin-empty">No hay compras registradas en el período.</div>';
+}
 
-        // ---- Cargar Gastos Recientes ----
-        async function cargarGastos() {
-            try {
-                const gastos = await ApiClient.listarGastos();
-                gastosData = Array.isArray(gastos) ? gastos : [];
-                renderTablaGastos();
-            } catch (err) {
-                showToast('Error al cargar los gastos', 'error');
-                console.error(err);
-            }
-        }
+function renderAlertas(list) {
+    alertas.innerHTML = list.length ? list.map(a => `
+        <div class="fin-alert">
+            <div>${a.nivel === 'vencida' ? '🚨' : '⏰'}</div>
+            <div><div class="fin-alert-title">${esc(a.numeroFactura)} · ${esc(a.proveedor)}</div><div class="fin-alert-meta">${a.nivel === 'vencida' ? `Vencida hace ${Math.abs(a.dias)} días` : `Vence en ${a.dias} días`} · Saldo ${formatCurrency(a.saldoPendiente)}</div></div>
+        </div>`).join('') : '<div class="fin-empty">No hay facturas vencidas o próximas.</div>';
+}
 
-        // ---- Render tabla de ventas ----
-        function renderTablaVentas() {
-            tbodyVentas.innerHTML = '';
+function enRango(valor) {
+    const fecha = String(valor || '').slice(0, 10);
+    return fecha && fecha >= desde.value && fecha <= hasta.value;
+}
 
-            if (ventasData.length === 0) {
-                tabVentas.querySelector('.data-table').classList.add('hidden');
-                emptyVentas.classList.remove('hidden');
-                return;
-            }
+async function obtenerDetalleReporte() {
+    const [ventas, gastos, compras, facturas] = await Promise.all([
+        ApiClient.listarVentas(),
+        ApiClient.listarGastos(),
+        ApiClient.listarCompras(),
+        ApiClient.listarFacturasProveedores()
+    ]);
+    return {
+        ventas: (ventas || []).filter(v => v.estado === 'completada' && enRango(v.fechaVenta)),
+        gastos: (gastos || []).filter(g => enRango(g.fechaGasto)),
+        compras: (compras || []).filter(c => c.estado === 'registrada' && enRango(c.fechaCompra)),
+        facturas: (facturas || []).filter(f => ['pendiente','parcial'].includes(f.estadoPago))
+    };
+}
 
-            tabVentas.querySelector('.data-table').classList.remove('hidden');
-            emptyVentas.classList.add('hidden');
+async function descargarPDF() {
+    if (!balanceActual) return showToast('Primero actualice el dashboard', 'warning');
+    if (!window.jspdf?.jsPDF) return showToast('No se pudo cargar el generador de PDF', 'error');
+    btnPdf.disabled = true;
+    try {
+        const detalle = await obtenerDetalleReporte();
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({unit:'pt',format:'a4'});
+        const verde = [47,133,90];
+        doc.setFillColor(...verde); doc.rect(0,0,595,72,'F');
+        doc.setTextColor(255); doc.setFontSize(19); doc.setFont(undefined,'bold'); doc.text('EMPLANORTE - Reporte financiero', 38, 34);
+        doc.setFontSize(10); doc.setFont(undefined,'normal'); doc.text(`Período: ${fechaLegible(desde.value)} al ${fechaLegible(hasta.value)}`, 38, 53);
+        doc.setTextColor(38,53,72);
 
-            // Mostrar las últimas 20 ventas, ordenadas por fecha descendente
-            const recientes = [...ventasData]
-                .sort((a, b) => new Date(b.fechaVenta || 0) - new Date(a.fechaVenta || 0))
-                .slice(0, 20);
-
-            recientes.forEach((venta, i) => {
-                const tr = document.createElement('tr');
-
-                const estado = venta.estado || 'completada';
-                let badgeClass = 'badge-success';
-                let estadoLabel = 'Completada';
-                if (estado === 'pendiente') {
-                    badgeClass = 'badge-warning';
-                    estadoLabel = 'Pendiente';
-                } else if (estado === 'anulada' || estado === 'cancelada') {
-                    badgeClass = 'badge-danger';
-                    estadoLabel = estado.charAt(0).toUpperCase() + estado.slice(1);
-                }
-
-                const clienteNombre = venta.cliente ? venta.cliente.nombre : 'Sin cliente';
-                const total = Number(venta.total) || 0;
-                const ganancia = Number(venta.ganancia) || 0;
-
-                tr.innerHTML = `
-                    <td>${i + 1}</td>
-                    <td>${formatDate(venta.fechaVenta)}</td>
-                    <td>${clienteNombre}</td>
-                    <td class="fw-bold">${formatCurrency(total)}</td>
-                    <td class="text-success">${formatCurrency(ganancia)}</td>
-                    <td><span class="badge ${badgeClass}">${estadoLabel}</span></td>
-                `;
-                tbodyVentas.appendChild(tr);
-            });
-        }
-
-        // ---- Render tabla de gastos ----
-        function renderTablaGastos() {
-            tbodyGastos.innerHTML = '';
-
-            if (gastosData.length === 0) {
-                tabGastos.querySelector('.data-table').classList.add('hidden');
-                emptyGastos.classList.remove('hidden');
-                return;
-            }
-
-            tabGastos.querySelector('.data-table').classList.remove('hidden');
-            emptyGastos.classList.add('hidden');
-
-            // Mostrar los últimos 20 gastos, ordenados por fecha descendente
-            const recientes = [...gastosData]
-                .sort((a, b) => new Date(b.fechaGasto || 0) - new Date(a.fechaGasto || 0))
-                .slice(0, 20);
-
-            recientes.forEach((gasto, i) => {
-                const tr = document.createElement('tr');
-                const categoria = gasto.categoria ? gasto.categoria.nombre : 'Sin categoría';
-                const descripcion = gasto.descripcion || '-';
-                const valor = Number(gasto.valor) || 0;
-
-                tr.innerHTML = `
-                    <td>${i + 1}</td>
-                    <td>${formatDate(gasto.fechaGasto)}</td>
-                    <td><span class="badge badge-primary">${categoria}</span></td>
-                    <td>${descripcion}</td>
-                    <td class="fw-bold text-danger">${formatCurrency(valor)}</td>
-                `;
-                tbodyGastos.appendChild(tr);
-            });
-        }
-
-        // ---- Tabs ----
-        document.querySelectorAll('.tab-item').forEach(tab => {
-            tab.addEventListener('click', () => {
-                document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                activeTab = tab.dataset.tab;
-
-                if (activeTab === 'ventas') {
-                    tabVentas.classList.remove('hidden');
-                    tabGastos.classList.add('hidden');
-                } else {
-                    tabVentas.classList.add('hidden');
-                    tabGastos.classList.remove('hidden');
-                }
-            });
+        doc.autoTable({
+            startY:88,
+            head:[['Indicador','Valor']],
+            body:[
+                ['Ventas netas', monedaPlano(balanceActual.ventasNetas)],
+                ['Costo de lo vendido', monedaPlano(balanceActual.costoVentas)],
+                ['Ganancia bruta', monedaPlano(balanceActual.gananciaBruta)],
+                ['Gastos operativos', monedaPlano(balanceActual.gastosOperativos)],
+                ['Ganancia neta', monedaPlano(balanceActual.gananciaNeta)],
+                ['Compras del período', monedaPlano(balanceActual.comprasPeriodo)],
+                ['Inventario valorizado', monedaPlano(balanceActual.inventarioValorizado)],
+                ['Cuentas por pagar', monedaPlano(balanceActual.cuentasPorPagar)]
+            ],
+            theme:'grid',
+            headStyles:{fillColor:verde},
+            styles:{fontSize:9,cellPadding:5},
+            columnStyles:{1:{halign:'right',fontStyle:'bold'}}
         });
 
-        // ---- Filtro por fecha ----
-        btnFiltrar.addEventListener('click', () => {
-            if (filtroDesde.value > filtroHasta.value) {
-                showToast('La fecha "Desde" no puede ser mayor que "Hasta"', 'warning');
-                return;
-            }
-            cargarResumen();
-        });
+        let y = doc.lastAutoTable.finalY + 18;
+        const agregarTabla = (titulo, head, body) => {
+            if (y > 690) { doc.addPage(); y = 40; }
+            doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.text(titulo, 38, y); y += 7;
+            doc.autoTable({startY:y,head:[head],body,theme:'striped',headStyles:{fillColor:[43,108,176]},styles:{fontSize:7.7,cellPadding:4},margin:{left:38,right:38}});
+            y = doc.lastAutoTable.finalY + 18;
+        };
 
-        // ---- Logo precargado para el PDF (best-effort) ----
-        const logoReporte = new Image();
-        logoReporte.src = '../img/Logo.png';
+        agregarTabla('Ventas completadas', ['N.º','Fecha','Cliente','Total','Ganancia'], detalle.ventas.map(v=>[
+            v.numeroVenta || v.id,
+            formatDateTime(v.fechaVenta),
+            v.cliente?.nombre || 'Sin cliente',
+            monedaPlano(v.total),
+            monedaPlano(v.ganancia)
+        ]));
+        agregarTabla('Compras registradas', ['N.º','Fecha','Proveedor','Total'], detalle.compras.map(c=>[
+            c.numeroCompra || c.id,
+            formatDateTime(c.fechaCompra),
+            c.proveedor?.razonSocial || '-',
+            monedaPlano(c.total)
+        ]));
+        agregarTabla('Gastos operativos', ['Fecha','Categoría','Descripción','Valor'], detalle.gastos.map(g=>[
+            formatDate(g.fechaGasto),
+            g.categoria?.nombre || '-',
+            g.descripcion || '-',
+            monedaPlano(g.valor)
+        ]));
+        agregarTabla('Cuentas por pagar vigentes', ['Factura','Proveedor','Vencimiento','Saldo'], detalle.facturas.map(f=>[
+            f.numeroFactura,
+            f.proveedor?.razonSocial || '-',
+            formatDate(f.fechaVencimiento),
+            monedaPlano(f.saldoPendiente)
+        ]));
 
-        // ---- Descargar Reporte PDF (jsPDF + autotable) ----
-        btnDescargar.addEventListener('click', async () => {
-            const desde = filtroDesde.value;
-            const hasta = filtroHasta.value;
+        doc.setFontSize(8); doc.setTextColor(100); doc.text('Generado por EMPLANORTE. Las ventas y compras anuladas no se incluyen en los totales.', 38, 812);
+        doc.save(`reporte_emplanorte_${desde.value}_${hasta.value}.pdf`);
+        showToast('Reporte PDF descargado', 'success');
+    } catch (e) {
+        showToast(e.message || 'No fue posible generar el PDF', 'error');
+    } finally {
+        btnPdf.disabled = false;
+    }
+}
 
-            if (!window.jspdf || !window.jspdf.jsPDF) {
-                showToast('No se pudo cargar el generador de PDF', 'error');
-                return;
-            }
+function csvCelda(valor) {
+    const texto = String(valor ?? '').replace(/"/g, '""');
+    return `"${texto}"`;
+}
 
-            // Filtrar datos al período seleccionado (todas las filas, no solo 20)
-            const enRango = (fecha) => {
-                if (!fecha) return false;
-                const f = String(fecha).split('T')[0];
-                return (!desde || f >= desde) && (!hasta || f <= hasta);
-            };
-            const ventas = [...ventasData].filter(v => enRango(v.fechaVenta))
-                .sort((a, b) => new Date(b.fechaVenta || 0) - new Date(a.fechaVenta || 0));
-            const gastos = [...gastosData].filter(g => enRango(g.fechaGasto))
-                .sort((a, b) => new Date(b.fechaGasto || 0) - new Date(a.fechaGasto || 0));
+async function descargarExcel() {
+    if (!balanceActual) return showToast('Primero actualice el dashboard', 'warning');
+    btnExcel.disabled = true;
+    try {
+        const detalle = await obtenerDetalleReporte();
+        const filas = [];
+        const agregar = fila => filas.push(fila.map(csvCelda).join(';'));
+        agregar(['REPORTE FINANCIERO EMPLANORTE']);
+        agregar(['Período', `${fechaLegible(desde.value)} al ${fechaLegible(hasta.value)}`]);
+        filas.push('');
+        agregar(['INDICADOR','VALOR']);
+        [
+            ['Ventas netas',balanceActual.ventasNetas],['Costo de lo vendido',balanceActual.costoVentas],['Ganancia bruta',balanceActual.gananciaBruta],
+            ['Gastos operativos',balanceActual.gastosOperativos],['Ganancia neta',balanceActual.gananciaNeta],['Compras del período',balanceActual.comprasPeriodo],
+            ['Inventario valorizado',balanceActual.inventarioValorizado],['Cuentas por pagar',balanceActual.cuentasPorPagar]
+        ].forEach(x=>agregar([x[0],num(x[1])]));
+        filas.push(''); agregar(['VENTAS']); agregar(['Número','Fecha','Cliente','Total','Ganancia']);
+        detalle.ventas.forEach(v=>agregar([v.numeroVenta||v.id,formatDateTime(v.fechaVenta),v.cliente?.nombre||'',num(v.total),num(v.ganancia)]));
+        filas.push(''); agregar(['COMPRAS']); agregar(['Número','Fecha','Proveedor','Total']);
+        detalle.compras.forEach(c=>agregar([c.numeroCompra||c.id,formatDateTime(c.fechaCompra),c.proveedor?.razonSocial||'',num(c.total)]));
+        filas.push(''); agregar(['GASTOS']); agregar(['Fecha','Categoría','Descripción','Valor']);
+        detalle.gastos.forEach(g=>agregar([formatDate(g.fechaGasto),g.categoria?.nombre||'',g.descripcion||'',num(g.valor)]));
+        filas.push(''); agregar(['CUENTAS POR PAGAR']); agregar(['Factura','Proveedor','Vencimiento','Saldo']);
+        detalle.facturas.forEach(f=>agregar([f.numeroFactura,f.proveedor?.razonSocial||'',formatDate(f.fechaVencimiento),num(f.saldoPendiente)]));
 
-            // KPIs del período (consistentes con las tarjetas del dashboard)
-            let totalVentas = 0, totalGastos = 0;
-            try {
-                const resumen = await ApiClient.obtenerResumenDashboard(desde, hasta);
-                totalVentas = Number(resumen.totalVentas) || 0;
-                totalGastos = Number(resumen.totalGastos) || 0;
-            } catch (_) {
-                totalVentas = ventas.reduce((s, v) => s + (Number(v.total) || 0), 0);
-                totalGastos = gastos.reduce((s, g) => s + (Number(g.valor) || 0), 0);
-            }
-            const balance = totalVentas - totalGastos;
+        const blob = new Blob(['\ufeff' + filas.join('\n')], {type:'text/csv;charset=utf-8;'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `reporte_emplanorte_${desde.value}_${hasta.value}.csv`; a.click();
+        URL.revokeObjectURL(url);
+        showToast('Reporte compatible con Excel descargado', 'success');
+    } catch (e) {
+        showToast(e.message || 'No fue posible generar el reporte', 'error');
+    } finally {
+        btnExcel.disabled = false;
+    }
+}
 
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-            const pageW = doc.internal.pageSize.getWidth();
-            const pageH = doc.internal.pageSize.getHeight();
-            const margin = 40;
-            const AZUL = [49, 130, 206];
-            const NARANJA = [221, 107, 32];
-            const GRIS = [45, 55, 72];
-            let y = margin;
-
-            // ---- Encabezado ----
-            try {
-                if (logoReporte.complete && logoReporte.naturalWidth > 0) {
-                    doc.addImage(logoReporte, 'PNG', margin, y, 42, 42);
-                }
-            } catch (_) { /* sin logo si falla */ }
-
-            doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.setTextColor(AZUL[0], AZUL[1], AZUL[2]);
-            doc.text('EMPLANORTE S.A.S.', margin + 52, y + 18);
-            doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(90, 90, 90);
-            doc.text('Reporte de Gestion Comercial', margin + 52, y + 34);
-            y += 58;
-
-            doc.setFontSize(10); doc.setTextColor(110, 110, 110);
-            doc.text(`Periodo: ${formatDate(desde)}  -  ${formatDate(hasta)}`, margin, y);
-            doc.text(`Generado: ${formatDateTime(new Date().toISOString())}`, pageW - margin, y, { align: 'right' });
-            y += 14;
-            doc.setDrawColor(220, 220, 220); doc.line(margin, y, pageW - margin, y); y += 18;
-
-            // ---- Tarjetas de KPIs ----
-            const kpis = [
-                ['Ventas del periodo', formatCurrency(totalVentas), GRIS],
-                ['Gastos del periodo', formatCurrency(totalGastos), GRIS],
-                ['Balance', formatCurrency(balance), balance >= 0 ? [56, 161, 105] : [229, 62, 62]]
-            ];
-            const boxW = (pageW - margin * 2 - 16) / 3;
-            kpis.forEach((k, i) => {
-                const x = margin + i * (boxW + 8);
-                doc.setFillColor(247, 250, 255); doc.setDrawColor(225, 225, 225);
-                doc.roundedRect(x, y, boxW, 52, 4, 4, 'FD');
-                doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(120, 120, 120);
-                doc.text(k[0], x + 10, y + 19);
-                doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(k[2][0], k[2][1], k[2][2]);
-                doc.text(k[1], x + 10, y + 39);
-            });
-            y += 52 + 24;
-
-            // ---- Tabla de ventas ----
-            doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(GRIS[0], GRIS[1], GRIS[2]);
-            doc.text(`Ventas (${ventas.length})`, margin, y);
-            doc.autoTable({
-                startY: y + 8,
-                head: [['#', 'Fecha', 'Cliente', 'Total', 'Ganancia', 'Estado']],
-                body: ventas.length
-                    ? ventas.map((v, i) => [
-                        i + 1, formatDate(v.fechaVenta), v.cliente ? v.cliente.nombre : 'Sin cliente',
-                        formatCurrency(v.total), formatCurrency(v.ganancia), v.estado || 'completada'
-                    ])
-                    : [['', '', 'Sin ventas en el periodo', '', '', '']],
-                styles: { fontSize: 9, cellPadding: 4, textColor: [60, 60, 60] },
-                headStyles: { fillColor: AZUL, textColor: 255, fontStyle: 'bold' },
-                alternateRowStyles: { fillColor: [247, 250, 252] },
-                columnStyles: { 3: { halign: 'right' }, 4: { halign: 'right' } },
-                margin: { left: margin, right: margin }
-            });
-            y = doc.lastAutoTable.finalY + 24;
-
-            // ---- Tabla de gastos ----
-            if (y > pageH - 120) { doc.addPage(); y = margin; }
-            doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor(GRIS[0], GRIS[1], GRIS[2]);
-            doc.text(`Gastos (${gastos.length})`, margin, y);
-            doc.autoTable({
-                startY: y + 8,
-                head: [['#', 'Fecha', 'Categoria', 'Descripcion', 'Valor']],
-                body: gastos.length
-                    ? gastos.map((g, i) => [
-                        i + 1, formatDate(g.fechaGasto), g.categoria ? g.categoria.nombre : 'Sin categoria',
-                        g.descripcion || '-', formatCurrency(g.valor)
-                    ])
-                    : [['', '', 'Sin gastos en el periodo', '', '']],
-                styles: { fontSize: 9, cellPadding: 4, textColor: [60, 60, 60] },
-                headStyles: { fillColor: NARANJA, textColor: 255, fontStyle: 'bold' },
-                alternateRowStyles: { fillColor: [253, 250, 247] },
-                columnStyles: { 4: { halign: 'right' } },
-                margin: { left: margin, right: margin }
-            });
-
-            // ---- Pie de pagina con numeracion ----
-            const totalPaginas = doc.internal.getNumberOfPages();
-            for (let p = 1; p <= totalPaginas; p++) {
-                doc.setPage(p);
-                doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(150, 150, 150);
-                doc.text('EMPLANORTE S.A.S. - Reporte generado automaticamente', margin, pageH - 20);
-                doc.text(`Pagina ${p} de ${totalPaginas}`, pageW - margin, pageH - 20, { align: 'right' });
-            }
-
-            doc.save(`reporte_emplanorte_${desde}_${hasta}.pdf`);
-            showToast('Reporte PDF descargado exitosamente', 'success');
-        });
-
-        // ---- Carga inicial ----
-        async function init() {
-            await Promise.all([
-                cargarResumen(),
-                cargarVentas(),
-                cargarGastos()
-            ]);
-            renderCharts();
-        }
-
-        init();
-
-        // ============================================================
-        // GRÁFICAS - Análisis Financiero
-        // ============================================================
-        let chartBarInst = null;
-        let chartLineInst = null;
-        let chartDonutInst = null;
-        let activePeriod = 'semana';
-
-        function getChartDateRange(period) {
-            const hoy = new Date();
-            hoy.setHours(0, 0, 0, 0);
-            if (period === 'dia') {
-                const fin = new Date(hoy);
-                fin.setDate(fin.getDate() + 1);
-                return { desde: hoy, hasta: fin };
-            }
-            if (period === 'semana') {
-                const lunes = new Date(hoy);
-                const dow = hoy.getDay();
-                lunes.setDate(hoy.getDate() - (dow === 0 ? 6 : dow - 1));
-                const domingo = new Date(lunes);
-                domingo.setDate(lunes.getDate() + 7);
-                return { desde: lunes, hasta: domingo };
-            }
-            if (period === 'mes') {
-                return {
-                    desde: new Date(hoy.getFullYear(), hoy.getMonth(), 1),
-                    hasta: new Date(hoy.getFullYear(), hoy.getMonth() + 1, 1)
-                };
-            }
-            // año
-            return {
-                desde: new Date(hoy.getFullYear(), 0, 1),
-                hasta: new Date(hoy.getFullYear() + 1, 0, 1)
-            };
-        }
-
-        function agruparDatos(datos, fechaKey, valorKey, period) {
-            const { desde, hasta } = getChartDateRange(period);
-
-            if (period === 'dia') {
-                const vals = new Array(24).fill(0);
-                datos.forEach(item => {
-                    const f = new Date(item[fechaKey]);
-                    if (f >= desde && f < hasta)
-                        vals[f.getHours()] += Number(item[valorKey]) || 0;
-                });
-                return { labels: Array.from({ length: 24 }, (_, i) => i + ':00'), values: vals };
-            }
-
-            if (period === 'semana') {
-                const labels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-                const vals = new Array(7).fill(0);
-                datos.forEach(item => {
-                    const f = new Date(item[fechaKey]);
-                    if (f >= desde && f < hasta) {
-                        const d = f.getDay();
-                        vals[d === 0 ? 6 : d - 1] += Number(item[valorKey]) || 0;
-                    }
-                });
-                return { labels, values: vals };
-            }
-
-            if (period === 'mes') {
-                const diasMes = new Date(desde.getFullYear(), desde.getMonth() + 1, 0).getDate();
-                const vals = new Array(diasMes).fill(0);
-                datos.forEach(item => {
-                    const f = new Date(item[fechaKey]);
-                    if (f >= desde && f < hasta)
-                        vals[f.getDate() - 1] += Number(item[valorKey]) || 0;
-                });
-                return { labels: Array.from({ length: diasMes }, (_, i) => String(i + 1)), values: vals };
-            }
-
-            // año
-            const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-            const vals = new Array(12).fill(0);
-            datos.forEach(item => {
-                const f = new Date(item[fechaKey]);
-                if (f >= desde && f < hasta)
-                    vals[f.getMonth()] += Number(item[valorKey]) || 0;
-            });
-            return { labels: meses, values: vals };
-        }
-
-        function tickCOP(v) {
-            if (Math.abs(v) >= 1e6) return '$' + (v / 1e6).toFixed(1) + 'M';
-            if (Math.abs(v) >= 1e3) return '$' + (v / 1e3).toFixed(0) + 'k';
-            return '$' + v;
-        }
-
-        function renderCharts() {
-            const ventasAgrup = agruparDatos(ventasData, 'fechaVenta', 'total', activePeriod);
-            const gastosAgrup = agruparDatos(gastosData, 'fechaGasto', 'valor', activePeriod);
-            const balanceVals = ventasAgrup.values.map((v, i) => v - (gastosAgrup.values[i] || 0));
-
-            // ---- Gráfica de barras: Ventas vs Gastos ----
-            const ctxBar = document.getElementById('chartVentasGastos').getContext('2d');
-            if (chartBarInst) chartBarInst.destroy();
-            chartBarInst = new Chart(ctxBar, {
-                type: 'bar',
-                data: {
-                    labels: ventasAgrup.labels,
-                    datasets: [
-                        {
-                            label: 'Ventas',
-                            data: ventasAgrup.values,
-                            backgroundColor: 'rgba(56,161,105,0.75)',
-                            borderColor: '#38a169',
-                            borderWidth: 1,
-                            borderRadius: 4
-                        },
-                        {
-                            label: 'Gastos',
-                            data: gastosAgrup.values,
-                            backgroundColor: 'rgba(229,62,62,0.7)',
-                            borderColor: '#e53e3e',
-                            borderWidth: 1,
-                            borderRadius: 4
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: ctx => ` ${ctx.dataset.label}: $${Number(ctx.parsed.y).toLocaleString('es-CO')}`
-                            }
-                        }
-                    },
-                    scales: {
-                        x: { grid: { display: false } },
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: '#f0f2f5' },
-                            ticks: { callback: tickCOP }
-                        }
-                    }
-                }
-            });
-
-            // ---- Gráfica de línea: Tendencia de Ganancia ----
-            const ctxLine = document.getElementById('chartBalance').getContext('2d');
-            if (chartLineInst) chartLineInst.destroy();
-            chartLineInst = new Chart(ctxLine, {
-                type: 'line',
-                data: {
-                    labels: ventasAgrup.labels,
-                    datasets: [{
-                        label: 'Ganancia',
-                        data: balanceVals,
-                        borderColor: '#3182ce',
-                        backgroundColor: 'rgba(49,130,206,0.08)',
-                        fill: true,
-                        tension: 0.4,
-                        pointBackgroundColor: '#3182ce',
-                        pointRadius: 3,
-                        pointHoverRadius: 5
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: ctx => ` Ganancia: $${Number(ctx.parsed.y).toLocaleString('es-CO')}`
-                            }
-                        }
-                    },
-                    scales: {
-                        x: { grid: { display: false } },
-                        y: { grid: { color: '#f0f2f5' }, ticks: { callback: tickCOP } }
-                    }
-                }
-            });
-
-            // ---- Gráfica donut: Gastos por Categoría ----
-            const { desde, hasta } = getChartDateRange(activePeriod);
-            const catMap = {};
-            gastosData.forEach(g => {
-                const f = new Date(g.fechaGasto);
-                if (f >= desde && f < hasta) {
-                    const cat = g.categoria ? g.categoria.nombre : 'Sin categoría';
-                    catMap[cat] = (catMap[cat] || 0) + (Number(g.valor) || 0);
-                }
-            });
-            const catLabels = Object.keys(catMap);
-            const catValues = Object.values(catMap);
-            const palette = ['#3182ce','#38a169','#e53e3e','#d69e2e','#805ad5','#dd6b20','#0bc5ea','#ed64a6','#319795'];
-            const ctxDonut = document.getElementById('chartGastosCategoria').getContext('2d');
-            if (chartDonutInst) chartDonutInst.destroy();
-            chartDonutInst = new Chart(ctxDonut, {
-                type: 'doughnut',
-                data: {
-                    labels: catLabels.length ? catLabels : ['Sin datos'],
-                    datasets: [{
-                        data: catValues.length ? catValues : [1],
-                        backgroundColor: catValues.length
-                            ? palette.slice(0, catLabels.length)
-                            : ['#e2e8f0'],
-                        borderWidth: 2,
-                        borderColor: '#fff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { font: { size: 11 }, padding: 10, boxWidth: 12 }
-                        },
-                        tooltip: {
-                            enabled: catValues.length > 0,
-                            callbacks: {
-                                label: ctx => ` ${ctx.label}: $${Number(ctx.parsed).toLocaleString('es-CO')}`
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // ---- Selector de período ----
-        document.querySelectorAll('.period-tab').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.period-tab').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                activePeriod = btn.dataset.period;
-                renderCharts();
-            });
-        });
-    </script>
+inicializarFechas();
+cargar();
+</script>
 </body>
 </html>

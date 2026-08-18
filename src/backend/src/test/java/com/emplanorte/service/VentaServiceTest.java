@@ -11,6 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -30,6 +31,8 @@ class VentaServiceTest {
     @Mock private ProductoRepository productoRepository;
     @Mock private ClienteRepository clienteRepository;
     @Mock private UsuarioRepository usuarioRepository;
+    @Mock private AuditoriaVentaRepository auditoriaVentaRepository;
+    @Mock private PasswordEncoder passwordEncoder;
 
     @InjectMocks private VentaService ventaService;
 
@@ -65,6 +68,7 @@ class VentaServiceTest {
         when(ventaRepository.generarNumeroVenta()).thenReturn("VTA-000001");
         when(ventaRepository.save(any(Venta.class))).thenAnswer(inv -> inv.getArgument(0));
         when(detalleVentaRepository.save(any(DetalleVenta.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(auditoriaVentaRepository.save(any(AuditoriaVenta.class))).thenAnswer(inv -> inv.getArgument(0));
     }
 
     // ─── RF05 · RF06  Registro y selección de productos ───────────────────────

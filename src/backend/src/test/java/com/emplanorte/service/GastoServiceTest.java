@@ -3,7 +3,9 @@ package com.emplanorte.service;
 import com.emplanorte.model.CategoriaGasto;
 import com.emplanorte.model.Gasto;
 import com.emplanorte.repository.CategoriaGastoRepository;
+import com.emplanorte.repository.AuditoriaGastoRepository;
 import com.emplanorte.repository.GastoRepository;
+import com.emplanorte.repository.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,6 +29,8 @@ class GastoServiceTest {
 
     @Mock private GastoRepository gastoRepository;
     @Mock private CategoriaGastoRepository categoriaGastoRepository;
+    @Mock private AuditoriaGastoRepository auditoriaGastoRepository;
+    @Mock private UsuarioRepository usuarioRepository;
 
     @InjectMocks private GastoService gastoService;
 

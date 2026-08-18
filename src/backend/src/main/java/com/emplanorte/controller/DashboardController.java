@@ -1,35 +1,31 @@
 package com.emplanorte.controller;
 
-import com.emplanorte.dto.DashboardResponse;
+import com.emplanorte.dto.*;
 import com.emplanorte.service.DashboardService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/dashboard")
 public class DashboardController {
+    private final DashboardService dashboardService;
+    public DashboardController(DashboardService dashboardService){this.dashboardService=dashboardService;}
 
-    @Autowired
-    private DashboardService dashboardService;
-
-    // RF11 - Resumen diario (cuando desde = hasta = hoy)
-    // RF12, RNF07 - Estadísticas filtradas por rango de fechas
     @GetMapping("/resumen")
-    public ResponseEntity<DashboardResponse> obtenerResumen(
-            @RequestParam(value = "desde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
-            @RequestParam(value = "hasta", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta) {
-        
-        if (desde == null) {
-            desde = LocalDate.now();
-        }
-        if (hasta == null) {
-            hasta = LocalDate.now();
-        }
-        
-        return ResponseEntity.ok(dashboardService.obtenerResumenFinanciero(desde, hasta));
+    public ResponseEntity<?> obtenerResumen(
+      @RequestParam(required=false) @DateTimeFormat(iso=DateTimeFormat.ISO.DATE) LocalDate desde,
+      @RequestParam(required=false) @DateTimeFormat(iso=DateTimeFormat.ISO.DATE) LocalDate hasta){
+        try{return ResponseEntity.ok(dashboardService.obtenerResumenFinanciero(desde,hasta));}
+        catch(RuntimeException e){return ResponseEntity.badRequest().body(e.getMessage());}
+    }
+
+    @GetMapping("/balance-completo")
+    public ResponseEntity<?> balanceCompleto(
+      @RequestParam(required=false) @DateTimeFormat(iso=DateTimeFormat.ISO.DATE) LocalDate desde,
+      @RequestParam(required=false) @DateTimeFormat(iso=DateTimeFormat.ISO.DATE) LocalDate hasta){
+        try{return ResponseEntity.ok(dashboardService.obtenerBalanceCompleto(desde,hasta));}
+        catch(RuntimeException e){return ResponseEntity.badRequest().body(e.getMessage());}
     }
 }

@@ -10,8 +10,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Estilos -->
-    <link rel="stylesheet" href="../css/styles.css">
-    <link rel="stylesheet" href="../css/app.css">
+    <link rel="stylesheet" href="../css/styles.css?v=2.4.0">
+    <link rel="stylesheet" href="../css/app.css?v=2.4.0">
     <style>
         /* --- Category Management Section --- */
         .categories-section {
@@ -330,8 +330,8 @@
     </div>
 
     <!-- Scripts -->
-    <script src="../js/api.js"></script>
-    <script src="../js/utils.js"></script>
+    <script src="../js/api.js?v=2.4.0"></script>
+    <script src="../js/utils.js?v=2.4.0"></script>
     <script>
         // ---- Initialize ----
         checkSession();
@@ -476,13 +476,22 @@
         function populateCategoriaSelect(categorias) {
             gastoCategoriaSelect.innerHTML = '<option value="">Seleccione una categoría</option>';
             if (categorias && categorias.length > 0) {
-                categorias.forEach(c => {
-                    const opt = document.createElement('option');
-                    opt.value = c.id;
-                    opt.textContent = c.nombre;
-                    gastoCategoriaSelect.appendChild(opt);
-                });
+                categorias
+                    .slice()
+                    .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''))
+                    .forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c.id;
+                        opt.textContent = c.nombre;
+                        gastoCategoriaSelect.appendChild(opt);
+                    });
             }
+            enhanceSearchableSelect(gastoCategoriaSelect, {
+                placeholder: 'Buscar categoría del gasto...',
+                minChars: 1,
+                maxResults: 8,
+                promptMessage: 'Escriba el nombre de la categoría.'
+            }).refresh();
         }
 
         // =============================================
@@ -534,6 +543,7 @@
             document.getElementById('btnGuardarGasto').textContent = '💾 Guardar Gasto';
 
             resetForm('formRegistrarGasto');
+            syncSearchableSelect(gastoCategoriaSelect);
             gastoFechaInput.value = todayISO();
             openModal('modalRegistrarGasto');
         }
@@ -551,6 +561,7 @@
             document.getElementById('btnGuardarGasto').textContent = 'Actualizar Gasto';
 
             document.getElementById('gastoCategoria').value = gasto.categoria ? gasto.categoria.id : '';
+            syncSearchableSelect('gastoCategoria');
             document.getElementById('gastoDescripcion').value = gasto.descripcion || '';
             document.getElementById('gastoValor').value = Number(gasto.valor || 0);
             document.getElementById('gastoFecha').value = gasto.fechaGasto || todayISO();

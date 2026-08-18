@@ -5,7 +5,9 @@ import com.emplanorte.repository.ProductoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Optional;
 
@@ -90,6 +92,15 @@ public class ProductoService {
         Producto producto = productoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado con el ID: " + id));
 
+        validarProducto(productoDetalles);
+        boolean nombreDuplicado = productoRepository.findByActivoTrue().stream()
+                .anyMatch(p -> !p.getId().equals(id)
+                        && p.getNombre() != null
+                        && p.getNombre().trim().equalsIgnoreCase(productoDetalles.getNombre().trim()));
+        if (nombreDuplicado) {
+            throw new RuntimeException("Ya existe otro producto activo con el nombre: " + productoDetalles.getNombre().trim());
+        }
+
         producto.setCodigo(productoDetalles.getCodigo());
         producto.setNombre(productoDetalles.getNombre());
         producto.setDescripcion(productoDetalles.getDescripcion());
@@ -111,4 +122,62 @@ public class ProductoService {
         producto.setActivo(false);
         productoRepository.save(producto);
     }
+
+
+    /**
+     * Fusiona dos productos que representan el mismo artículo.
+     * Conserva el producto destino, suma el stock, recalcula el costo promedio
+     * y desactiva el producto duplicado. Los detalles históricos permanecen
+     * asociados al producto original para no alterar ventas o compras pasadas.
+     */
+    @Transactional
+    public Producto fusionar(Long productoDestinoId, Long productoDuplicadoId) {
+        if (productoDestinoId == null || productoDuplicadoId == null) {
+            throw new RuntimeException("Debe seleccionar los dos productos a fusionar");
+        }
+        if (productoDestinoId.equals(productoDuplicadoId)) {
+            throw new RuntimeException("El producto principal y el duplicado no pueden ser el mismo");
+        }
+
+        Long primero = Math.min(productoDestinoId, productoDuplicadoId);
+        Long segundo = Math.max(productoDestinoId, productoDuplicadoId);
+        Producto p1 = productoRepository.buscarPorIdParaActualizar(primero)
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+        Producto p2 = productoRepository.buscarPorIdParaActualizar(segundo)
+                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+
+        Producto destino = p1.getId().equals(productoDestinoId) ? p1 : p2;
+        Producto duplicado = p1.getId().equals(productoDuplicadoId) ? p1 : p2;
+
+        if (!Boolean.TRUE.equals(destino.getActivo()) || !Boolean.TRUE.equals(duplicado.getActivo())) {
+            throw new RuntimeException("Solo se pueden fusionar productos activos");
+        }
+
+        int stockDestino = destino.getStockDisponible() == null ? 0 : destino.getStockDisponible();
+        int stockDuplicado = duplicado.getStockDisponible() == null ? 0 : duplicado.getStockDisponible();
+        int stockTotal = stockDestino + stockDuplicado;
+
+        BigDecimal costoDestino = destino.getCostoUnitario() == null ? BigDecimal.ZERO : destino.getCostoUnitario();
+        BigDecimal costoDuplicado = duplicado.getCostoUnitario() == null ? BigDecimal.ZERO : duplicado.getCostoUnitario();
+        BigDecimal nuevoCosto = costoDestino;
+        if (stockTotal > 0) {
+            BigDecimal valorDestino = costoDestino.multiply(BigDecimal.valueOf(stockDestino));
+            BigDecimal valorDuplicado = costoDuplicado.multiply(BigDecimal.valueOf(stockDuplicado));
+            nuevoCosto = valorDestino.add(valorDuplicado)
+                    .divide(BigDecimal.valueOf(stockTotal), 2, RoundingMode.HALF_UP);
+        }
+
+        destino.setStockDisponible(stockTotal);
+        destino.setCostoUnitario(nuevoCosto);
+        destino.setStockMinimo(Math.max(
+                destino.getStockMinimo() == null ? 0 : destino.getStockMinimo(),
+                duplicado.getStockMinimo() == null ? 0 : duplicado.getStockMinimo()
+        ));
+
+        duplicado.setStockDisponible(0);
+        duplicado.setActivo(false);
+        productoRepository.save(duplicado);
+        return productoRepository.save(destino);
+    }
+
 }

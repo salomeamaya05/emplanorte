@@ -10,8 +10,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Estilos -->
-    <link rel="stylesheet" href="../css/styles.css">
-    <link rel="stylesheet" href="../css/app.css">
+    <link rel="stylesheet" href="../css/styles.css?v=2.4.0">
+    <link rel="stylesheet" href="../css/app.css?v=2.4.0">
+    <link rel="stylesheet" href="../css/finance.css?v=2.3.0">
 </head>
 <body class="app-body">
     <div class="app-layout">
@@ -21,8 +22,11 @@
             <div class="page-header">
                 <h1 class="page-title">Inventario</h1>
                 <div class="page-actions">
+    <button class="btn-app btn-app-outline" id="btnRevisarDuplicados" title="Detectar productos con nombres similares">
+        <span>🔎</span> Revisar Duplicados
+    </button>
     <button class="btn-app btn-app-outline" id="btnRegistrarCategoria">
-        <span>🏷️</span> Registrar Categoría
+        <span>🏷️</span> Gestionar Categorías
     </button>
     <button class="btn-app btn-app-primary" id="btnAgregarProducto">
         <span>＋</span> Agregar Producto
@@ -185,43 +189,79 @@
             </div>
         </div>
     </div>
-    <!-- Modal: Registrar Categoría -->
+    <!-- Modal: Gestionar categorías -->
 <div class="modal-overlay" id="modalCategoria">
-    <div class="modal">
+    <div class="modal modal-categorias">
         <div class="modal-header">
-            <h3>Registrar Categoría</h3>
+            <h3>Gestionar Categorías</h3>
             <button class="modal-close" id="btnCerrarModalCategoria">&times;</button>
         </div>
 
         <div class="modal-body">
             <form id="formCategoria">
+                <input type="hidden" id="categoriaEditandoId">
+                <h4 id="tituloFormCategoria" class="category-form-title">Nueva categoría</h4>
                 <div class="form-group-app">
                     <label for="nombreCategoria">Nombre de la categoría</label>
-                    <input type="text" id="nombreCategoria" placeholder="Ej: Envase PET" required>
+                    <input type="text" id="nombreCategoria" maxlength="100" placeholder="Ej: Envase PET" required>
                 </div>
 
                 <div class="form-group-app">
                     <label for="descripcionCategoria">Descripción</label>
                     <textarea id="descripcionCategoria" rows="3" placeholder="Descripción de la categoría"></textarea>
                 </div>
+
+                <div class="category-form-actions">
+                    <button type="button" class="btn-app btn-app-outline hidden" id="btnCancelarEdicionCategoria">Cancelar edición</button>
+                    <button type="button" class="btn-app btn-app-primary" id="btnGuardarCategoria">Guardar Categoría</button>
+                </div>
             </form>
+
+            <div class="category-list-section">
+                <div class="category-list-heading">
+                    <h4>Categorías actuales</h4>
+                    <span id="cantidadCategoriasModal">0 categorías</span>
+                </div>
+                <div id="listaCategorias" class="category-list"></div>
+            </div>
         </div>
 
         <div class="modal-footer">
-            <button class="btn-app btn-app-outline" id="btnCancelarCategoria">Cancelar</button>
-            <button class="btn-app btn-app-primary" id="btnGuardarCategoria">Guardar Categoría</button>
+            <button class="btn-app btn-app-outline" id="btnCancelarCategoria">Cerrar</button>
         </div>
     </div>
 </div>
 
+
+    <!-- Modal: revisión segura de productos duplicados -->
+    <div class="fin-modal" id="modalDuplicados">
+        <div class="fin-modal-card">
+            <div class="fin-modal-head">
+                <div><h3>Revisar productos posiblemente duplicados</h3><div class="fin-muted" style="font-size:11px;margin-top:3px">El sistema solo sugiere coincidencias. Usted decide cuál producto conservar.</div></div>
+                <button class="fin-close" type="button" onclick="cerrarModalDuplicados()">×</button>
+            </div>
+            <div class="fin-modal-body">
+                <div class="fin-info-card">
+                    <div class="fin-info-icon">⚠️</div>
+                    <div><strong>La fusión no borra el historial.</strong><p>Se sumará el stock al producto principal, se recalculará su costo promedio y el duplicado quedará inactivo con stock cero. Las ventas y compras anteriores conservarán el nombre con el que fueron registradas.</p></div>
+                </div>
+                <div id="listaDuplicados" class="duplicate-list"></div>
+            </div>
+            <div class="fin-modal-foot">
+                <button type="button" class="fin-btn fin-btn-light" onclick="cerrarModalDuplicados()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
-    <script src="../js/api.js"></script>
-    <script src="../js/utils.js"></script>
+    <script src="../js/api.js?v=2.4.0"></script>
+    <script src="../js/utils.js?v=2.4.0"></script>
     <script>
         // ---- Estado de la página ----
         let productos = [];
         let categorias = [];
         let editandoId = null;
+        let editandoCategoriaId = null;
 
         // ---- Inicialización ----
         checkSession();
@@ -233,7 +273,7 @@
             try {
                 const [prods, cats] = await Promise.all([
                     ApiClient.listarProductos(),
-                    ApiClient.request('/categorias-producto', { method: 'GET' })
+                    ApiClient.listarCategoriasProducto()
                 ]);
                 productos = Array.isArray(prods) ? prods : [];
                 categorias = Array.isArray(cats) ? cats : [];
@@ -241,6 +281,7 @@
                 poblarSelectCategoriaModal();
                 renderizarResumen();
                 renderizarTabla();
+                renderizarCategorias();
             } catch (err) {
                 console.error('Error al cargar datos:', err);
                 showToast('Error al cargar datos del inventario', 'error');
@@ -248,52 +289,56 @@
         }
 
         // ---- Poblar dropdown de filtro de categorías ----
-       function poblarFiltroCategorias() {
-    const select = document.getElementById('filterCategoria');
-    select.innerHTML = '<option value="">Todas las categorías</option>';
+        function poblarFiltroCategorias() {
+            const select = document.getElementById('filterCategoria');
+            const categoriaSeleccionada = select.value;
+            select.innerHTML = '<option value="">Todas las categorías</option>';
 
-    categorias
-        .filter(cat => cat.activo !== false)
-        .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''))
-        .forEach(cat => {
-            const opt = document.createElement('option');
-            opt.value = cat.nombre;
-            opt.textContent = cat.nombre;
-            select.appendChild(opt);
-        });
-}
+            categorias
+                .filter(cat => cat.activo !== false)
+                .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''))
+                .forEach(cat => {
+                    const opt = document.createElement('option');
+                    opt.value = String(cat.id);
+                    opt.textContent = cat.nombre;
+                    select.appendChild(opt);
+                });
+
+            if ([...select.options].some(opt => opt.value === categoriaSeleccionada)) {
+                select.value = categoriaSeleccionada;
+            }
+        }
 
         // ---- Poblar select de categoría en el modal ----
         function poblarSelectCategoriaModal() {
             const select = document.getElementById('categoriaSelect');
             select.innerHTML = '<option value="">Seleccionar categoría</option>';
-            categorias.forEach(cat => {
-                const opt = document.createElement('option');
-                opt.value = cat.id;
-                opt.textContent = cat.nombre;
-                select.appendChild(opt);
-            });
-        }
-
-        // ---- Obtener categorías únicas de los productos ----
-        function obtenerCategoriasUnicas() {
-            const set = new Set();
-            productos.forEach(p => {
-                const catName = p.categoria ? p.categoria.nombre : null;
-                if (catName) set.add(catName);
-            });
-            return Array.from(set).sort();
+            categorias
+                .filter(cat => cat.activo !== false)
+                .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''))
+                .forEach(cat => {
+                    const opt = document.createElement('option');
+                    opt.value = cat.id;
+                    opt.textContent = cat.nombre;
+                    select.appendChild(opt);
+                });
+            enhanceSearchableSelect(select, {
+                placeholder: 'Buscar categoría...',
+                minChars: 1,
+                maxResults: 8,
+                promptMessage: 'Escriba el nombre de la categoría.'
+            }).refresh();
         }
 
         // ---- Renderizar tarjetas de resumen ----
         function renderizarResumen() {
             const total = productos.length;
             const stockBajo = productos.filter(p => (p.stockDisponible || 0) <= (p.stockMinimo || 0)).length;
-            const categoriasUnicas = obtenerCategoriasUnicas().length;
+            const totalCategoriasActivas = categorias.filter(cat => cat.activo !== false).length;
 
             document.getElementById('totalProductos').textContent = total;
             document.getElementById('stockBajo').textContent = stockBajo;
-            document.getElementById('totalCategorias').textContent = categoriasUnicas;
+            document.getElementById('totalCategorias').textContent = totalCategoriasActivas;
         }
 
         // ---- Obtener productos filtrados ----
@@ -307,8 +352,8 @@ function obtenerProductosFiltrados() {
                 (p.nombre || '').toLowerCase().includes(busqueda) ||
                 (p.codigo || '').toLowerCase().includes(busqueda);
 
-            const catNombre = p.categoria ? p.categoria.nombre : '';
-            const coincideCategoria = !catFiltro || catNombre === catFiltro;
+            const categoriaId = p.categoria ? String(p.categoria.id) : '';
+            const coincideCategoria = !catFiltro || categoriaId === catFiltro;
 
             return coincideBusqueda && coincideCategoria;
         })
@@ -412,6 +457,7 @@ function obtenerCapacidadOrden(producto) {
             document.getElementById('modalTitle').textContent = 'Agregar Producto';
             document.getElementById('btnGuardar').textContent = 'Guardar Producto';
             resetForm('formProducto');
+            syncSearchableSelect('categoriaSelect');
             document.getElementById('productoId').value = '';
             openModal('modalProducto');
         }
@@ -428,6 +474,7 @@ function obtenerCapacidadOrden(producto) {
                 document.getElementById('nombre').value = producto.nombre || '';
                 document.getElementById('descripcion').value = producto.descripcion || '';
                 document.getElementById('categoriaSelect').value = producto.categoria ? producto.categoria.id : '';
+                syncSearchableSelect('categoriaSelect');
                 document.getElementById('capacidadMl').value = producto.capacidadMl || '';
                 document.getElementById('costoUnitario').value = producto.costoUnitario || '';
                 document.getElementById('precioVenta').value = producto.precioVenta || '';
@@ -509,57 +556,257 @@ function obtenerCapacidadOrden(producto) {
             editandoId = null;
             resetForm('formProducto');
         }
-function abrirModalCategoria() {
-    resetForm('formCategoria');
-    openModal('modalCategoria');
-}
+        function abrirModalCategoria() {
+            cancelarEdicionCategoria();
+            renderizarCategorias();
+            openModal('modalCategoria');
+        }
 
-function cerrarModalCategoria() {
-    closeModal('modalCategoria');
-    resetForm('formCategoria');
-}
+        function cerrarModalCategoria() {
+            closeModal('modalCategoria');
+            cancelarEdicionCategoria();
+        }
 
-async function guardarCategoria() {
-    const form = document.getElementById('formCategoria');
+        function cancelarEdicionCategoria() {
+            editandoCategoriaId = null;
+            resetForm('formCategoria');
+            document.getElementById('categoriaEditandoId').value = '';
+            document.getElementById('tituloFormCategoria').textContent = 'Nueva categoría';
+            document.getElementById('btnGuardarCategoria').textContent = 'Guardar Categoría';
+            document.getElementById('btnCancelarEdicionCategoria').classList.add('hidden');
+        }
 
-    if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-    }
+        function renderizarCategorias() {
+            const lista = document.getElementById('listaCategorias');
+            if (!lista) return;
+            const activas = categorias
+                .filter(cat => cat.activo !== false)
+                .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+            document.getElementById('cantidadCategoriasModal').textContent =
+                `${activas.length} ${activas.length === 1 ? 'categoría' : 'categorías'}`;
 
-    const datos = {
-        nombre: document.getElementById('nombreCategoria').value.trim(),
-        descripcion: document.getElementById('descripcionCategoria').value.trim(),
-        activo: true
-    };
+            if (!activas.length) {
+                lista.innerHTML = '<div class="category-list-empty">No hay categorías registradas.</div>';
+                return;
+            }
 
-    const btnGuardar = document.getElementById('btnGuardarCategoria');
-    btnGuardar.disabled = true;
-    btnGuardar.textContent = 'Guardando...';
+            lista.innerHTML = activas.map(cat => `
+                <div class="category-list-item">
+                    <div class="category-list-info">
+                        <strong>${escapeHtml(cat.nombre || '')}</strong>
+                        <span>${escapeHtml(cat.descripcion || 'Sin descripción')}</span>
+                    </div>
+                    <div class="category-list-actions">
+                        <button type="button" class="btn-app btn-app-outline btn-app-sm" onclick="editarCategoria(${cat.id})" title="Editar categoría">✏️</button>
+                        <button type="button" class="btn-app btn-app-danger btn-app-sm" onclick="eliminarCategoria(${cat.id})" title="Eliminar categoría">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
+        }
 
-    try {
-        await ApiClient.request('/categorias-producto', {
-            method: 'POST',
-            body: JSON.stringify(datos)
-        });
+        function editarCategoria(id) {
+            const categoria = categorias.find(cat => Number(cat.id) === Number(id));
+            if (!categoria) return;
+            editandoCategoriaId = id;
+            document.getElementById('categoriaEditandoId').value = id;
+            document.getElementById('nombreCategoria').value = categoria.nombre || '';
+            document.getElementById('descripcionCategoria').value = categoria.descripcion || '';
+            document.getElementById('tituloFormCategoria').textContent = 'Editar categoría';
+            document.getElementById('btnGuardarCategoria').textContent = 'Actualizar Categoría';
+            document.getElementById('btnCancelarEdicionCategoria').classList.remove('hidden');
+            document.getElementById('nombreCategoria').focus();
+        }
 
-        showToast('Categoría registrada correctamente', 'success');
-        cerrarModalCategoria();
-        await cargarDatos();
-    } catch (err) {
-        console.error('Error al guardar categoría:', err);
-        showToast(err.message || 'Error al registrar la categoría', 'error');
-    } finally {
-        btnGuardar.disabled = false;
-        btnGuardar.textContent = 'Guardar Categoría';
-    }
-}
+        async function guardarCategoria() {
+            const form = document.getElementById('formCategoria');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const categoriaId = editandoCategoriaId;
+            const datos = {
+                nombre: document.getElementById('nombreCategoria').value.trim(),
+                descripcion: document.getElementById('descripcionCategoria').value.trim()
+            };
+            const btnGuardar = document.getElementById('btnGuardarCategoria');
+            btnGuardar.disabled = true;
+            btnGuardar.textContent = categoriaId ? 'Actualizando...' : 'Guardando...';
+
+            try {
+                if (categoriaId) {
+                    await ApiClient.actualizarCategoriaProducto(categoriaId, datos);
+                    showToast('Categoría actualizada correctamente', 'success');
+                } else {
+                    await ApiClient.crearCategoriaProducto(datos);
+                    showToast('Categoría registrada correctamente', 'success');
+                }
+                cancelarEdicionCategoria();
+                await cargarDatos();
+            } catch (err) {
+                console.error('Error al guardar categoría:', err);
+                showToast(err.message || 'Error al guardar la categoría', 'error');
+            } finally {
+                btnGuardar.disabled = false;
+                btnGuardar.textContent = editandoCategoriaId ? 'Actualizar Categoría' : 'Guardar Categoría';
+            }
+        }
+
+        async function eliminarCategoria(id) {
+            const categoria = categorias.find(cat => Number(cat.id) === Number(id));
+            if (!categoria || !confirm(`¿Eliminar la categoría "${categoria.nombre}"?`)) return;
+
+            try {
+                await ApiClient.eliminarCategoriaProducto(id);
+                if (Number(editandoCategoriaId) === Number(id)) cancelarEdicionCategoria();
+                showToast('Categoría eliminada correctamente', 'success');
+                await cargarDatos();
+            } catch (err) {
+                console.error('Error al eliminar categoría:', err);
+                showToast(err.message || 'Error al eliminar la categoría', 'error');
+            }
+        }
+        const duplicadosIgnorados = new Set();
+
+        function normalizarNombreDuplicado(valor) {
+            return String(valor || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .replace(/\bmililitros?\b/g, 'ml')
+                .replace(/\blitros?\b|\blt\b/g, 'l')
+                .replace(/\bonzas?\b|\boz\b/g, 'oz')
+                .replace(/[^a-z0-9]+/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function capacidadComparable(producto) {
+            if (producto.capacidadMl !== null && producto.capacidadMl !== undefined && Number(producto.capacidadMl) > 0) {
+                return Number(producto.capacidadMl);
+            }
+            const texto = normalizarNombreDuplicado(producto.nombre);
+            const ml = texto.match(/(\d+(?:[.,]\d+)?)\s*ml\b/);
+            if (ml) return Number(ml[1].replace(',', '.'));
+            const litros = texto.match(/(\d+(?:[.,]\d+)?)\s*l\b/);
+            if (litros) return Number(litros[1].replace(',', '.')) * 1000;
+            const onzas = texto.match(/(\d+(?:[.,]\d+)?)\s*oz\b/);
+            if (onzas) return Math.round(Number(onzas[1].replace(',', '.')) * 29.5735);
+            return null;
+        }
+
+        function similitudTokens(a, b) {
+            const aa = new Set(normalizarNombreDuplicado(a).split(' ').filter(Boolean));
+            const bb = new Set(normalizarNombreDuplicado(b).split(' ').filter(Boolean));
+            if (!aa.size || !bb.size) return 0;
+            const inter = [...aa].filter(x => bb.has(x)).length;
+            const union = new Set([...aa, ...bb]).size;
+            return inter / union;
+        }
+
+        function detectarDuplicados() {
+            const sugerencias = [];
+            for (let i = 0; i < productos.length; i++) {
+                for (let j = i + 1; j < productos.length; j++) {
+                    const a = productos[i], b = productos[j];
+                    const clave = [Math.min(a.id, b.id), Math.max(a.id, b.id)].join('-');
+                    if (duplicadosIgnorados.has(clave)) continue;
+
+                    const categoriaA = a.categoria?.id || null;
+                    const categoriaB = b.categoria?.id || null;
+                    if (categoriaA && categoriaB && categoriaA !== categoriaB) continue;
+
+                    const capA = capacidadComparable(a), capB = capacidadComparable(b);
+                    if (capA !== null && capB !== null && Math.abs(capA - capB) > 2) continue;
+
+                    const na = normalizarNombreDuplicado(a.nombre);
+                    const nb = normalizarNombreDuplicado(b.nombre);
+                    const similitud = similitudTokens(na, nb);
+                    const contiene = na.length >= 5 && nb.length >= 5 && (na.includes(nb) || nb.includes(na));
+                    if (na === nb || contiene || similitud >= 0.62) {
+                        sugerencias.push({ a, b, similitud: na === nb ? 1 : similitud });
+                    }
+                }
+            }
+            return sugerencias.sort((x, y) => y.similitud - x.similitud);
+        }
+
+        function abrirModalDuplicados() {
+            renderizarDuplicados();
+            document.getElementById('modalDuplicados').classList.add('show');
+        }
+
+        function cerrarModalDuplicados() {
+            document.getElementById('modalDuplicados').classList.remove('show');
+        }
+
+        function descripcionProductoDuplicado(p) {
+            return `${escapeHtml(p.codigo || 'Sin código')} · ${escapeHtml(p.categoria?.nombre || 'Sin categoría')} · Stock ${Number(p.stockDisponible) || 0} · Costo ${formatCurrency(p.costoUnitario)}`;
+        }
+
+        function nombreCortoProducto(p) {
+            const nombre = String(p.nombre || `Producto ${p.id}`);
+            return nombre.length > 28 ? nombre.slice(0, 25) + '…' : nombre;
+        }
+
+        function renderizarDuplicados() {
+            const lista = document.getElementById('listaDuplicados');
+            const sugerencias = detectarDuplicados();
+            if (!sugerencias.length) {
+                lista.innerHTML = '<div class="fin-empty"><div class="fin-empty-icon">✅</div>No se encontraron coincidencias claras entre los productos activos.</div>';
+                return;
+            }
+
+            lista.innerHTML = sugerencias.map(({a, b, similitud}) => `
+                <div class="duplicate-card" id="dup_${a.id}_${b.id}">
+                    <div class="duplicate-grid">
+                        <div class="duplicate-product"><h4>${escapeHtml(a.nombre)}</h4><div class="duplicate-meta">${descripcionProductoDuplicado(a)}</div></div>
+                        <div class="duplicate-arrow">⇄</div>
+                        <div class="duplicate-product"><h4>${escapeHtml(b.nombre)}</h4><div class="duplicate-meta">${descripcionProductoDuplicado(b)}</div></div>
+                    </div>
+                    <div class="fin-help" style="text-align:center;margin-top:7px">Coincidencia estimada: ${Math.round(similitud * 100)} %. Verifique físicamente que sean el mismo producto.</div>
+                    <div class="duplicate-actions">
+                        <button type="button" class="fin-btn fin-btn-primary fin-btn-sm" onclick="fusionarSugerencia(${a.id}, ${b.id})">Conservar “${escapeHtml(nombreCortoProducto(a))}”</button>
+                        <button type="button" class="fin-btn fin-btn-primary fin-btn-sm" onclick="fusionarSugerencia(${b.id}, ${a.id})">Conservar “${escapeHtml(nombreCortoProducto(b))}”</button>
+                        <button type="button" class="fin-btn fin-btn-light fin-btn-sm" onclick="ignorarSugerencia(${a.id}, ${b.id})">No son duplicados</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function ignorarSugerencia(a, b) {
+            duplicadosIgnorados.add([Math.min(a, b), Math.max(a, b)].join('-'));
+            renderizarDuplicados();
+        }
+
+        async function fusionarSugerencia(destinoId, duplicadoId) {
+            const destino = productos.find(p => Number(p.id) === Number(destinoId));
+            const duplicado = productos.find(p => Number(p.id) === Number(duplicadoId));
+            if (!destino || !duplicado) return;
+
+            const mensaje = `Se conservará "${destino.nombre}" y se desactivará "${duplicado.nombre}".\n\n` +
+                `Stock resultante: ${(Number(destino.stockDisponible)||0) + (Number(duplicado.stockDisponible)||0)} unidades.\n` +
+                'El costo se recalculará por promedio ponderado y el historial anterior no se borrará.\n\n¿Confirma que físicamente son el mismo producto?';
+            if (!confirm(mensaje)) return;
+
+            try {
+                await ApiClient.fusionarProductos(destinoId, duplicadoId);
+                showToast('Productos fusionados correctamente', 'success');
+                await cargarDatos();
+                renderizarDuplicados();
+            } catch (err) {
+                showToast(err.message || 'No fue posible fusionar los productos', 'error');
+            }
+        }
+
         // ---- Event Listeners ----
         document.getElementById('btnAgregarProducto').addEventListener('click', abrirModalAgregar);
+        document.getElementById('btnRevisarDuplicados').addEventListener('click', abrirModalDuplicados);
         document.getElementById('btnEmptyAdd').addEventListener('click', abrirModalAgregar);
         document.getElementById('btnRegistrarCategoria').addEventListener('click', abrirModalCategoria);
         document.getElementById('btnCerrarModalCategoria').addEventListener('click', cerrarModalCategoria);
         document.getElementById('btnCancelarCategoria').addEventListener('click', cerrarModalCategoria);
+        document.getElementById('btnCancelarEdicionCategoria').addEventListener('click', cancelarEdicionCategoria);
         document.getElementById('btnGuardarCategoria').addEventListener('click', guardarCategoria);
 
         document.getElementById('formCategoria').addEventListener('submit', (e) => {
