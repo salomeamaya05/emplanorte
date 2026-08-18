@@ -170,7 +170,7 @@ function renderSidebar(activePage) {
             <button class="btn-logout" id="btnLogout">
                 <span>🚪</span> Cerrar Sesión
             </button>
-            <div class="sidebar-version">v2.3.3</div>
+            <div class="sidebar-version">v2.4.0</div>
         </div>
     </aside>
     `;

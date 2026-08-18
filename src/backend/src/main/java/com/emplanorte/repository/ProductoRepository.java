@@ -12,6 +12,7 @@ import java.util.Optional;
 public interface ProductoRepository extends JpaRepository<Producto, Long> {
     List<Producto> findByActivoTrue();
     Optional<Producto> findByCodigoAndActivoTrue(String codigo);
+    boolean existsByCategoriaIdAndActivoTrue(Long categoriaId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT p FROM Producto p WHERE p.id=:id")

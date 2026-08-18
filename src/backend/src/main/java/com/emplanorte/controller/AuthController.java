@@ -17,6 +17,9 @@ import java.util.regex.Pattern;
 @RequestMapping("/api/auth")
 public class AuthController {
 
+    private static final String MENSAJE_BLOQUEO =
+            "Demasiados intentos fallidos. Espere 15 minutos antes de volver a intentar.";
+
     // Formato de correo: parte local, @, dominio y al menos un punto. Sin espacios.
     private static final Pattern CORREO_VALIDO =
             Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
@@ -41,7 +44,7 @@ public class AuthController {
         // CP-47 - Bloqueo temporal tras demasiados intentos fallidos
         if (loginAttemptService.estaBloqueado(correo)) {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                    .body("Demasiados intentos fallidos. Intente de nuevo más tarde.");
+                    .body(MENSAJE_BLOQUEO);
         }
 
         Optional<Usuario> usuarioOpt = authService.login(correo, contrasena);
@@ -59,9 +62,13 @@ public class AuthController {
             response.put("token", "dummy-jwt-token-for-" + usuario.getId());
             return ResponseEntity.ok(response);
         } else {
-            loginAttemptService.registrarFallo(correo);
+            int intentosRestantes = loginAttemptService.registrarFallo(correo);
+            if (intentosRestantes == 0) {
+                return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                        .body(MENSAJE_BLOQUEO);
+            }
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Credenciales incorrectas o usuario inactivo");
+                    .body("Correo o contraseña incorrectos. Intentos restantes: " + intentosRestantes + ".");
         }
     }
 

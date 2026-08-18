@@ -6,6 +6,51 @@ const API_BASE_URL = window.location.hostname === 'localhost' || window.location
     ? 'http://localhost:8080/api'
     : 'https://emplanorte-2-cx20.onrender.com/api';
 
+// Indicador global para todas las operaciones contra el backend. Usa un contador
+// para no ocultarse antes de tiempo cuando una pantalla lanza varias peticiones.
+const LoadingIndicator = (() => {
+    let solicitudesActivas = 0;
+    let overlay = null;
+
+    function obtenerOverlay() {
+        if (overlay && document.body.contains(overlay)) return overlay;
+        overlay = document.createElement('div');
+        overlay.className = 'global-loading-overlay';
+        overlay.setAttribute('role', 'status');
+        overlay.setAttribute('aria-live', 'polite');
+        overlay.setAttribute('aria-label', 'Cargando, por favor espere');
+        overlay.innerHTML = `
+            <div class="global-loading-card">
+                <div class="global-loading-spinner" aria-hidden="true"></div>
+                <strong>Cargando</strong>
+                <span>Espere un momento, por favor…</span>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        return overlay;
+    }
+
+    function mostrar() {
+        solicitudesActivas += 1;
+        const elemento = obtenerOverlay();
+        elemento.classList.add('show');
+        elemento.setAttribute('aria-hidden', 'false');
+        document.documentElement.classList.add('is-loading');
+    }
+
+    function ocultar() {
+        solicitudesActivas = Math.max(0, solicitudesActivas - 1);
+        if (solicitudesActivas > 0 || !overlay) return;
+        overlay.classList.remove('show');
+        overlay.setAttribute('aria-hidden', 'true');
+        document.documentElement.classList.remove('is-loading');
+    }
+
+    return { mostrar, ocultar };
+})();
+
+window.LoadingIndicator = LoadingIndicator;
+
 const ApiClient = {
     // Utilidad interna para peticiones fetch
     async request(endpoint, options = {}) {
@@ -31,6 +76,7 @@ const ApiClient = {
             headers
         };
 
+        LoadingIndicator.mostrar();
         try {
             const response = await fetch(url, config);
 
@@ -58,6 +104,8 @@ const ApiClient = {
         } catch (error) {
             console.error(`Error en API request [${url}]:`, error);
             throw error;
+        } finally {
+            LoadingIndicator.ocultar();
         }
     },
 
@@ -69,15 +117,23 @@ const ApiClient = {
             const { token } = JSON.parse(session);
             if (token) headers['Authorization'] = `Bearer ${token}`;
         }
-        const response = await fetch(url, { ...options, headers, body: formData });
-        const text = await response.text();
-        let data;
-        try { data = JSON.parse(text); } catch (_) { data = text; }
-        if (!response.ok) {
-            const msg = typeof data === 'object' && data !== null ? (data.message || data.error || JSON.stringify(data)) : String(data || 'Error en la petición');
-            throw new Error(msg);
+        LoadingIndicator.mostrar();
+        try {
+            const response = await fetch(url, { ...options, headers, body: formData });
+            const text = await response.text();
+            let data;
+            try { data = JSON.parse(text); } catch (_) { data = text; }
+            if (!response.ok) {
+                const msg = typeof data === 'object' && data !== null ? (data.message || data.error || JSON.stringify(data)) : String(data || 'Error en la petición');
+                throw new Error(msg);
+            }
+            return data;
+        } catch (error) {
+            console.error(`Error en API request [${url}]:`, error);
+            throw error;
+        } finally {
+            LoadingIndicator.ocultar();
         }
-        return data;
     },
 
     // ==========================================
@@ -130,6 +186,28 @@ const ApiClient = {
             method: 'POST',
             body: JSON.stringify({ productoDestinoId, productoDuplicadoId })
         });
+    },
+
+    async listarCategoriasProducto() {
+        return this.request('/categorias-producto', { method: 'GET' });
+    },
+
+    async crearCategoriaProducto(categoria) {
+        return this.request('/categorias-producto', {
+            method: 'POST',
+            body: JSON.stringify(categoria)
+        });
+    },
+
+    async actualizarCategoriaProducto(id, categoria) {
+        return this.request(`/categorias-producto/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(categoria)
+        });
+    },
+
+    async eliminarCategoriaProducto(id) {
+        return this.request(`/categorias-producto/${id}`, { method: 'DELETE' });
     },
 
     // ==========================================
