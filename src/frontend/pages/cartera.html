@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMPLANORTE - Cartera</title>
+    <link rel="stylesheet" href="../css/app.css?v=2.5.0">
+    <link rel="stylesheet" href="../css/finance.css?v=2.5.0">
+    <style>
+        .portfolio-filters { display:flex; flex-wrap:wrap; gap:7px; }
+        .portfolio-filter { border:1px solid var(--card-border); background:#fff; color:var(--text-medium); border-radius:20px; padding:7px 12px; cursor:pointer; font-size:11px; font-weight:700; }
+        .portfolio-filter.active { color:#fff; background:var(--primary); border-color:var(--primary); }
+        .portfolio-state { display:inline-flex; padding:4px 8px; border-radius:20px; font-size:10px; font-weight:800; text-transform:uppercase; }
+        .state-pendiente { color:#8a5a00; background:#fff4cc; }
+        .state-vence_hoy { color:#9c4221; background:#feebc8; }
+        .state-vencido { color:#b91c1c; background:#fee2e2; }
+        .state-pagado { color:#166534; background:#dcfce7; }
+        .state-anulado { color:#475569; background:#e2e8f0; }
+        .portfolio-actions { display:flex; gap:6px; }
+        .portfolio-actions button { border:1px solid var(--card-border); border-radius:7px; background:#fff; padding:6px 8px; cursor:pointer; }
+        .payment-balance { padding:13px; margin-bottom:14px; border-radius:10px; background:#f7fafc; display:flex; justify-content:space-between; }
+        .payment-balance strong { color:#c05621; font-size:17px; }
+        .payment-history { display:grid; gap:8px; }
+        .payment-item { display:grid; grid-template-columns:120px 1fr auto; gap:10px; align-items:center; padding:10px; border:1px solid var(--card-border); border-radius:9px; }
+        .payment-item small { color:var(--text-light); }
+        .client-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px; }
+        .client-summary div { padding:10px; border-radius:9px; background:#f7fafc; }
+        .client-summary span { display:block; color:var(--text-light); font-size:10px; }
+        .client-summary strong { display:block; margin-top:3px; }
+        @media (max-width:700px) { .client-summary { grid-template-columns:1fr; } .payment-item { grid-template-columns:1fr; } }
+    </style>
+</head>
+<body class="app-body">
+<main class="main-content">
+    <div class="fin-page">
+        <div class="fin-header">
+            <div class="fin-title">
+                <h1>Cartera de clientes</h1>
+                <p>Controle créditos, fechas de pago y abonos sin modificar la venta original.</p>
+            </div>
+        </div>
+
+        <section class="fin-grid fin-kpis">
+            <article class="fin-kpi"><div class="fin-kpi-icon">💰</div><div><div class="fin-kpi-label">Total por cobrar</div><div class="fin-kpi-value" id="kPorCobrar">$ 0</div></div></article>
+            <article class="fin-kpi"><div class="fin-kpi-icon">🚨</div><div><div class="fin-kpi-label">Cartera vencida</div><div class="fin-kpi-value" id="kVencido">$ 0</div><div class="fin-kpi-note" id="nVencidos">0 créditos</div></div></article>
+            <article class="fin-kpi"><div class="fin-kpi-icon">📅</div><div><div class="fin-kpi-label">Por vencer</div><div class="fin-kpi-value" id="kPorVencer">$ 0</div></div></article>
+            <article class="fin-kpi"><div class="fin-kpi-icon">👥</div><div><div class="fin-kpi-label">Clientes con saldo</div><div class="fin-kpi-value" id="kClientes">0</div><div class="fin-kpi-note" id="nPendientes">0 créditos pendientes</div></div></article>
+        </section>
+
+        <section class="fin-card">
+            <div class="fin-toolbar">
+                <div class="portfolio-filters" id="filtrosEstado">
+                    <button class="portfolio-filter active" data-estado="todos">Todos</button>
+                    <button class="portfolio-filter" data-estado="pendiente">Pendientes</button>
+                    <button class="portfolio-filter" data-estado="vencido">Vencidos</button>
+                    <button class="portfolio-filter" data-estado="vence_hoy">Vencen hoy</button>
+                    <button class="portfolio-filter" data-estado="pagado">Pagados</button>
+                    <button class="portfolio-filter" data-estado="anulado">Anulados</button>
+                </div>
+                <input class="fin-input" id="buscarCredito" placeholder="Buscar cliente, documento, venta o fecha…" style="max-width:340px">
+            </div>
+            <div class="fin-table-wrap">
+                <table class="fin-table">
+                    <thead><tr><th>Cliente</th><th>Venta</th><th>Total</th><th>Abonado</th><th>Saldo</th><th>Vence</th><th>Estado</th><th>Acciones</th></tr></thead>
+                    <tbody id="tablaCartera"></tbody>
+                </table>
+            </div>
+            <div class="fin-empty" id="carteraVacia" style="display:none">No hay créditos que coincidan con el filtro.</div>
+        </section>
+    </div>
+</main>
+
+<div class="modal-overlay" id="modalAbono">
+    <div class="modal" style="max-width:560px">
+        <div class="modal-header"><h3>Registrar abono</h3><button class="modal-close" onclick="closeModal('modalAbono')">&times;</button></div>
+        <form onsubmit="guardarAbono(event)">
+            <div class="modal-body">
+                <div class="payment-balance"><span>Saldo actual<br><small id="abonoVenta"></small></span><strong id="abonoSaldo">$ 0</strong></div>
+                <div class="form-row">
+                    <div class="form-group-app"><label for="abonoMonto">Nuevo abono *</label><input type="number" id="abonoMonto" min="0.01" step="0.01" required></div>
+                    <div class="form-group-app"><label for="abonoForma">Forma de pago *</label><select id="abonoForma" required><option value="efectivo">Efectivo</option><option value="transferencia">Transferencia</option><option value="nequi">Nequi</option><option value="daviplata">Daviplata</option><option value="tarjeta">Tarjeta</option><option value="otro">Otro</option></select></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group-app"><label for="abonoFecha">Fecha y hora *</label><input type="datetime-local" id="abonoFecha" required></div>
+                    <div class="form-group-app"><label for="abonoObservaciones">Observación</label><textarea id="abonoObservaciones" rows="2"></textarea></div>
+                </div>
+                <div id="abonoError" class="fin-danger-note" style="display:none"></div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn-app btn-app-outline" onclick="closeModal('modalAbono')">Cancelar</button><button type="submit" class="btn-app btn-app-primary" id="btnGuardarAbono">Guardar abono</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modalDetalleCredito">
+    <div class="modal" style="max-width:720px">
+        <div class="modal-header"><h3 id="detalleCreditoTitulo">Detalle del crédito</h3><button class="modal-close" onclick="closeModal('modalDetalleCredito')">&times;</button></div>
+        <div class="modal-body" id="detalleCreditoBody"></div>
+        <div class="modal-footer"><button class="btn-app btn-app-outline" onclick="closeModal('modalDetalleCredito')">Cerrar</button></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="modalEditarCredito">
+    <div class="modal" style="max-width:540px">
+        <div class="modal-header"><h3>Editar acuerdo de pago</h3><button class="modal-close" onclick="closeModal('modalEditarCredito')">&times;</button></div>
+        <form onsubmit="guardarEdicionCredito(event)">
+            <div class="modal-body">
+                <div class="form-group-app"><label for="editarVencimiento">Fecha acordada *</label><input type="date" id="editarVencimiento" required></div>
+                <div class="form-group-app"><label for="editarObservaciones">Observaciones</label><textarea id="editarObservaciones" rows="3"></textarea></div>
+                <div class="form-group-app"><label for="editarCreditoPassword">Contraseña del administrador *</label><input type="password" id="editarCreditoPassword" autocomplete="current-password" required></div>
+                <div id="editarCreditoError" class="fin-danger-note" style="display:none"></div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn-app btn-app-outline" onclick="closeModal('modalEditarCredito')">Cancelar</button><button type="submit" class="btn-app btn-app-primary" id="btnEditarCredito">Guardar cambios</button></div>
+        </form>
+    </div>
+</div>
+
+<script src="../js/runtime-config.js?v=2.6.0"></script>
+<script src="../js/api.js?v=2.6.0"></script>
+<script src="../js/utils.js?v=2.5.1"></script>
+<script>
+checkSession();
+renderSidebar('cartera');
+
+let creditos = [];
+let estadoActual = 'todos';
+let creditoAbono = null;
+let creditoEditando = null;
+let claveAbono = null;
+
+const num = value => Number(value) || 0;
+const esc = value => { const d=document.createElement('div'); d.textContent=value==null?'':String(value); return d.innerHTML; };
+
+function fechaHoraInput(value = null) {
+    const d = value ? new Date(value) : new Date();
+    const pad = n => String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function textoVencimiento(c) {
+    const dias = Number(c.diasParaVencer);
+    if (c.estado === 'pagado') return 'Pagado';
+    if (c.estado === 'anulado') return 'Anulado';
+    if (dias < 0) return `Vencido hace ${Math.abs(dias)} día${Math.abs(dias)===1?'':'s'}`;
+    if (dias === 0) return 'Vence hoy';
+    return `Vence en ${dias} día${dias===1?'':'s'}`;
+}
+
+function etiquetaEstado(estado) {
+    const nombres={pendiente:'Pendiente',vence_hoy:'Vence hoy',vencido:'Vencido',pagado:'Pagado',anulado:'Anulado'};
+    return `<span class="portfolio-state state-${esc(estado)}">${nombres[estado]||esc(estado)}</span>`;
+}
+
+async function cargar() {
+    try {
+        const [lista,resumen] = await Promise.all([ApiClient.listarCreditos(),ApiClient.obtenerResumenCartera()]);
+        creditos = Array.isArray(lista) ? lista : [];
+        kPorCobrar.textContent=formatCurrency(resumen.totalPorCobrar);
+        kVencido.textContent=formatCurrency(resumen.totalVencido);
+        kPorVencer.textContent=formatCurrency(resumen.totalPorVencer);
+        kClientes.textContent=resumen.clientesConSaldo||0;
+        nVencidos.textContent=`${resumen.creditosVencidos||0} créditos`;
+        nPendientes.textContent=`${resumen.creditosPendientes||0} créditos pendientes`;
+        render();
+    } catch (error) { showToast(error.message||'No se pudo cargar la cartera','error'); }
+}
+
+function filtrados() {
+    const q=buscarCredito.value.trim().toLowerCase();
+    return creditos.filter(c => (estadoActual==='todos'||c.estado===estadoActual) && (!q || `${c.cliente?.nombre||''} ${c.cliente?.documento||''} ${c.cliente?.telefono||''} ${c.numeroVenta||''} ${c.fechaVenta||''} ${c.fechaVencimiento||''}`.toLowerCase().includes(q)));
+}
+
+function render() {
+    const lista=filtrados();
+    carteraVacia.style.display=lista.length?'none':'block';
+    tablaCartera.innerHTML=lista.map(c=>{
+        const admite=['pendiente','vencido','vence_hoy'].includes(c.estado);
+        return `<tr><td><strong>${esc(c.cliente?.nombre||'Sin cliente')}</strong><br><small>${esc(c.cliente?.documento||'Sin documento')} · ${esc(c.cliente?.telefono||'Sin teléfono')}</small></td><td>${esc(c.numeroVenta)}</td><td>${formatCurrency(c.totalCredito)}</td><td>${formatCurrency(c.totalAbonado)}</td><td><strong>${formatCurrency(c.saldoPendiente)}</strong></td><td>${formatDate(c.fechaVencimiento)}<br><small>${textoVencimiento(c)}</small></td><td>${etiquetaEstado(c.estado)}</td><td><div class="portfolio-actions"><button title="Ver historial" onclick="verCredito(${c.id})">👁</button>${admite?`<button title="Registrar abono" onclick="abrirAbono(${c.id})">💵</button><button title="Editar acuerdo" onclick="abrirEditar(${c.id})">✏️</button>`:''}</div></td></tr>`;
+    }).join('');
+}
+
+document.querySelectorAll('.portfolio-filter').forEach(btn=>btn.addEventListener('click',()=>{
+    document.querySelectorAll('.portfolio-filter').forEach(x=>x.classList.remove('active'));
+    btn.classList.add('active'); estadoActual=btn.dataset.estado; render();
+}));
+buscarCredito.addEventListener('input',render);
+
+function abrirAbono(id) {
+    const c=creditos.find(x=>Number(x.id)===Number(id));
+    if(!c)return;
+    creditoAbono=c;
+    claveAbono=window.crypto?.randomUUID?.() || `abono-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    abonoVenta.textContent=c.numeroVenta;
+    abonoSaldo.textContent=formatCurrency(c.saldoPendiente);
+    abonoMonto.value=''; abonoMonto.removeAttribute('max');
+    abonoForma.value='efectivo'; abonoFecha.value=fechaHoraInput(); abonoObservaciones.value='';
+    abonoError.style.display='none'; openModal('modalAbono');
+}
+
+async function guardarAbono(event) {
+    event.preventDefault();
+    const monto=num(abonoMonto.value), saldo=num(creditoAbono?.saldoPendiente);
+    if(monto<=0||monto>saldo){abonoError.textContent='El abono debe ser mayor a cero y no superar el saldo.';abonoError.style.display='block';return false;}
+    const user=getUser(),btn=btnGuardarAbono; btn.disabled=true; btn.textContent='Guardando…';
+    try {
+        await ApiClient.registrarAbonoCredito(creditoAbono.id,{monto,formaPago:abonoForma.value,fechaPago:abonoFecha.value,observaciones:abonoObservaciones.value.trim(),idUsuario:user?.id||user?.idUsuario,claveIdempotencia:claveAbono});
+        closeModal('modalAbono'); showToast('Abono registrado sin modificar la venta ni el inventario'); await cargar();
+    } catch(error){abonoError.textContent=error.message;abonoError.style.display='block';}
+    finally{btn.disabled=false;btn.textContent='Guardar abono';}
+    return false;
+}
+
+async function verCredito(id) {
+    const c=creditos.find(x=>Number(x.id)===Number(id)); if(!c)return;
+    detalleCreditoTitulo.textContent=`${c.numeroVenta} · ${c.cliente?.nombre||''}`;
+    detalleCreditoBody.innerHTML='<div class="fin-empty">Cargando historial…</div>'; openModal('modalDetalleCredito');
+    try {
+        const [abonos,resumenCliente]=await Promise.all([ApiClient.listarAbonosCredito(id),ApiClient.obtenerResumenCarteraCliente(c.cliente.id)]);
+        detalleCreditoBody.innerHTML=`<div class="client-summary"><div><span>Ventas del cliente</span><strong>${formatCurrency(resumenCliente.ventasRealizadas)}</strong></div><div><span>Total pagado</span><strong>${formatCurrency(resumenCliente.totalPagado)}</strong></div><div><span>Saldo del cliente</span><strong>${formatCurrency(resumenCliente.saldoPendiente)}</strong></div></div><div class="payment-balance"><span>Total crédito: <b>${formatCurrency(c.totalCredito)}</b><br>Vence: ${formatDate(c.fechaVencimiento)}</span><strong>Saldo ${formatCurrency(c.saldoPendiente)}</strong></div><h4>Historial de pagos</h4><div class="payment-history">${abonos.length?abonos.map(a=>`<div class="payment-item"><div>${formatDateTime(a.fechaPago)}<br><small>${a.tipo==='inicial'?'Pago inicial':'Abono'}</small></div><div>${esc(a.formaPago)}<br><small>${esc(a.observaciones||'Sin observación')} · ${esc(a.usuarioNombre||'')}</small></div><strong>${formatCurrency(a.monto)}</strong></div>`).join(''):'<div class="fin-empty">Aún no hay pagos registrados.</div>'}</div>`;
+    } catch(error){detalleCreditoBody.innerHTML=`<div class="fin-danger-note">${esc(error.message)}</div>`;}
+}
+
+function abrirEditar(id) {
+    creditoEditando=creditos.find(x=>Number(x.id)===Number(id)); if(!creditoEditando)return;
+    editarVencimiento.value=creditoEditando.fechaVencimiento;
+    editarObservaciones.value=creditoEditando.observaciones||'';
+    editarCreditoPassword.value=''; editarCreditoError.style.display='none'; openModal('modalEditarCredito');
+}
+
+async function guardarEdicionCredito(event) {
+    event.preventDefault(); const user=getUser(),btn=btnEditarCredito; btn.disabled=true;btn.textContent='Guardando…';
+    try {
+        await ApiClient.actualizarCredito(creditoEditando.id,{fechaVencimiento:editarVencimiento.value,observaciones:editarObservaciones.value.trim(),idUsuario:user?.id||user?.idUsuario,contrasena:editarCreditoPassword.value});
+        closeModal('modalEditarCredito');showToast('Acuerdo de pago actualizado');await cargar();
+    } catch(error){editarCreditoError.textContent=error.message;editarCreditoError.style.display='block';}
+    finally{btn.disabled=false;btn.textContent='Guardar cambios';}
+    return false;
+}
+
+cargar();
+</script>
+</body>
+</html>

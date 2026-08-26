@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -19,6 +20,12 @@ public class VentaRequest {
     private BigDecimal descuento;
     private String observaciones;
     private List<ItemVentaRequest> detalles;
+
+    // Cartera: solo aplican cuando metodoPago = credito.
+    private BigDecimal pagoInicial;
+    private String formaPagoInicial;
+    private LocalDate fechaVencimientoCredito;
+    private String observacionesCredito;
 
     // Solo se usa al crear una venta que reemplaza una venta anulada.
     private Long idVentaOrigen;

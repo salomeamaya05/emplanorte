@@ -35,28 +35,32 @@ public class ProductoController {
 
     // RF01, RF03 - Registro de productos
     @PostMapping
-    public ResponseEntity<Producto> crearProducto(@RequestBody Producto producto) {
-        return ResponseEntity.ok(productoService.guardar(producto));
+    public ResponseEntity<?> crearProducto(@RequestBody Producto producto) {
+        try {
+            return ResponseEntity.ok(productoService.guardar(producto));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     // RF02 - Modificación de productos
     @PutMapping("/{id}")
-    public ResponseEntity<Producto> actualizarProducto(@PathVariable Long id, @RequestBody Producto producto) {
+    public ResponseEntity<?> actualizarProducto(@PathVariable Long id, @RequestBody Producto producto) {
         try {
             return ResponseEntity.ok(productoService.actualizar(id, producto));
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 
     // RF02 - Eliminación lógica de productos
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminarProducto(@PathVariable Long id) {
+    public ResponseEntity<?> eliminarProducto(@PathVariable Long id) {
         try {
             productoService.desactivar(id);
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 

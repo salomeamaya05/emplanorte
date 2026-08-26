@@ -100,7 +100,7 @@
 .dashboard-filter-group label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#7b899c}
 .dashboard-filter-group .fin-input{width:145px}
 .dashboard-report-group{padding-left:12px;border-left:1px solid var(--fin-border)}
-.dashboard-primary{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:10px}
+.dashboard-primary{grid-template-columns:repeat(5,minmax(0,1fr));margin-bottom:10px}
 .dashboard-secondary{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:12px}
 .dashboard-secondary .fin-kpi{min-height:70px;padding:10px 12px}
 .dashboard-secondary .fin-kpi-icon{width:34px;height:34px;min-width:34px;font-size:16px}

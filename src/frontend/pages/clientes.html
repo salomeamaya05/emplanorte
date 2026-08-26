@@ -50,7 +50,7 @@
                 <!-- Filter Bar -->
                 <div class="filter-bar">
                     <div class="search-input">
-                        <input type="text" id="searchInput" placeholder="Buscar por nombre o teléfono...">
+                        <input type="text" id="searchInput" placeholder="Buscar por nombre, documento o teléfono...">
                     </div>
                 </div>
 
@@ -60,6 +60,7 @@
                         <thead>
                             <tr>
                                 <th>Nombre</th>
+                                <th>Documento</th>
                                 <th>Teléfono</th>
                                 <th>Dirección</th>
                                 <th>Observaciones</th>
@@ -100,6 +101,11 @@
                     </div>
 
                     <div class="form-group-app">
+                        <label for="documento">Documento</label>
+                        <input type="text" id="documento" maxlength="40" placeholder="Cédula, NIT u otro identificador">
+                    </div>
+
+                    <div class="form-group-app">
                         <label for="telefono">Teléfono</label>
                         <input type="text" id="telefono" placeholder="Ej: 3001234567">
                     </div>
@@ -123,8 +129,9 @@
     </div>
 
     <!-- Scripts -->
-    <script src="../js/api.js?v=2.4.0"></script>
-    <script src="../js/utils.js?v=2.4.0"></script>
+    <script src="../js/runtime-config.js?v=2.6.0"></script>
+    <script src="../js/api.js?v=2.6.0"></script>
+    <script src="../js/utils.js?v=2.5.1"></script>
     <script>
         // ---- State ----
         let clientes = [];
@@ -184,8 +191,9 @@
             if (term) {
                 filtered = clientes.filter(c => {
                     const nombre = (c.nombre || '').toLowerCase();
+                    const documento = (c.documento || '').toLowerCase();
                     const telefono = (c.telefono || '').toLowerCase();
-                    return nombre.includes(term) || telefono.includes(term);
+                    return nombre.includes(term) || documento.includes(term) || telefono.includes(term);
                 });
             }
 
@@ -210,6 +218,7 @@
                 return `
                     <tr>
                         <td style="font-weight:600; color:var(--text-dark);">${escapeHtml(c.nombre || '')}</td>
+                        <td>${escapeHtml(c.documento || '-')}</td>
                         <td>${escapeHtml(c.telefono || '-')}</td>
                         <td>${escapeHtml(c.direccion || '-')}</td>
                         <td>${escapeHtml(c.observaciones || '-')}</td>
@@ -243,6 +252,7 @@
             modalTitle.textContent = 'Editar Cliente';
             clienteIdInput.value = id;
             document.getElementById('nombre').value = cliente.nombre || '';
+            document.getElementById('documento').value = cliente.documento || '';
             document.getElementById('telefono').value = cliente.telefono || '';
             document.getElementById('direccion').value = cliente.direccion || '';
             document.getElementById('observaciones').value = cliente.observaciones || '';
@@ -259,6 +269,7 @@
         // ---- Save (Create / Update) ----
         async function guardarCliente() {
             const nombre = document.getElementById('nombre').value.trim();
+            const documento = document.getElementById('documento').value.trim();
             const telefono = document.getElementById('telefono').value.trim();
             const direccion = document.getElementById('direccion').value.trim();
             const observaciones = document.getElementById('observaciones').value.trim();
@@ -268,7 +279,7 @@
                 return;
             }
 
-            const data = { nombre, telefono, direccion, observaciones };
+            const data = { nombre, documento, telefono, direccion, observaciones };
             const btnGuardar = document.getElementById('btnGuardar');
             btnGuardar.disabled = true;
             btnGuardar.textContent = 'Guardando...';

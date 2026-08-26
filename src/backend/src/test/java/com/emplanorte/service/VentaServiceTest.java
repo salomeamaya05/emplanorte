@@ -33,6 +33,7 @@ class VentaServiceTest {
     @Mock private UsuarioRepository usuarioRepository;
     @Mock private AuditoriaVentaRepository auditoriaVentaRepository;
     @Mock private PasswordEncoder passwordEncoder;
+    @Mock private CarteraService carteraService;
 
     @InjectMocks private VentaService ventaService;
 
@@ -77,7 +78,7 @@ class VentaServiceTest {
     @DisplayName("CP-13: Venta exitosa con 1 producto — stock se descuenta de 10 a 7")
     void registrarVenta_exitosa_descuentaStock() {
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
-        when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
+        when(productoRepository.buscarPorIdParaActualizar(1L)).thenReturn(Optional.of(producto));
         stubGuardado();
 
         Venta resultado = ventaService.registrarVenta(buildRequest(List.of(new ItemVentaRequest(1L, 3))));
@@ -90,7 +91,7 @@ class VentaServiceTest {
     @DisplayName("CP-14: Cantidad mayor al stock — RuntimeException con mensaje claro")
     void registrarVenta_stockInsuficiente_lanzaExcepcion() {
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
-        when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
+        when(productoRepository.buscarPorIdParaActualizar(1L)).thenReturn(Optional.of(producto));
         when(ventaRepository.generarNumeroVenta()).thenReturn("VTA-000002");
 
         assertThatThrownBy(() ->
@@ -127,8 +128,8 @@ class VentaServiceTest {
         producto2.setPrecioVenta(new BigDecimal("1200"));
 
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
-        when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
-        when(productoRepository.findById(2L)).thenReturn(Optional.of(producto2));
+        when(productoRepository.buscarPorIdParaActualizar(1L)).thenReturn(Optional.of(producto));
+        when(productoRepository.buscarPorIdParaActualizar(2L)).thenReturn(Optional.of(producto2));
         stubGuardado();
 
         ventaService.registrarVenta(buildRequest(List.of(
@@ -144,7 +145,7 @@ class VentaServiceTest {
     @DisplayName("CP-17: Método de pago registrado correctamente en la venta")
     void registrarVenta_metodoPagoQuedaraGuardado() {
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
-        when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
+        when(productoRepository.buscarPorIdParaActualizar(1L)).thenReturn(Optional.of(producto));
         stubGuardado();
 
         VentaRequest req = buildRequest(List.of(new ItemVentaRequest(1L, 1)));
@@ -160,7 +161,7 @@ class VentaServiceTest {
     @DisplayName("CP-20: Total = precio $1500 × cantidad 3 = $4500")
     void registrarVenta_calculaTotalUnProducto() {
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
-        when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
+        when(productoRepository.buscarPorIdParaActualizar(1L)).thenReturn(Optional.of(producto));
         stubGuardado();
 
         Venta resultado = ventaService.registrarVenta(buildRequest(List.of(new ItemVentaRequest(1L, 3))));
@@ -173,7 +174,7 @@ class VentaServiceTest {
     @DisplayName("CP-21: Ganancia = (precio $1500 − costo $1000) × 2 unidades = $1000")
     void registrarVenta_calculaGananciaLineal() {
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
-        when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
+        when(productoRepository.buscarPorIdParaActualizar(1L)).thenReturn(Optional.of(producto));
         stubGuardado();
 
         Venta resultado = ventaService.registrarVenta(buildRequest(List.of(new ItemVentaRequest(1L, 2))));
@@ -197,8 +198,8 @@ class VentaServiceTest {
         prodB.setPrecioVenta(new BigDecimal("500"));
 
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
-        when(productoRepository.findById(1L)).thenReturn(Optional.of(prodA));
-        when(productoRepository.findById(2L)).thenReturn(Optional.of(prodB));
+        when(productoRepository.buscarPorIdParaActualizar(1L)).thenReturn(Optional.of(prodA));
+        when(productoRepository.buscarPorIdParaActualizar(2L)).thenReturn(Optional.of(prodB));
         stubGuardado();
 
         Venta resultado = ventaService.registrarVenta(buildRequest(List.of(
@@ -216,7 +217,7 @@ class VentaServiceTest {
         producto.setCostoUnitario(new BigDecimal("900.25"));
 
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
-        when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
+        when(productoRepository.buscarPorIdParaActualizar(1L)).thenReturn(Optional.of(producto));
         stubGuardado();
 
         Venta resultado = ventaService.registrarVenta(buildRequest(List.of(new ItemVentaRequest(1L, 4))));
@@ -231,7 +232,7 @@ class VentaServiceTest {
     void registrarVenta_descuentaStockExacto() {
         producto.setStockDisponible(20);
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
-        when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
+        when(productoRepository.buscarPorIdParaActualizar(1L)).thenReturn(Optional.of(producto));
         stubGuardado();
 
         ventaService.registrarVenta(buildRequest(List.of(new ItemVentaRequest(1L, 5))));
@@ -244,7 +245,7 @@ class VentaServiceTest {
     void registrarVenta_agotaStock_productoNoDesaparece() {
         producto.setStockDisponible(5);
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
-        when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
+        when(productoRepository.buscarPorIdParaActualizar(1L)).thenReturn(Optional.of(producto));
         stubGuardado();
 
         Venta resultado = ventaService.registrarVenta(buildRequest(List.of(new ItemVentaRequest(1L, 5))));
@@ -298,7 +299,7 @@ class VentaServiceTest {
     @DisplayName("Partición: producto inexistente — excepción con ID del producto")
     void registrarVenta_productoNoExiste_lanzaExcepcion() {
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
-        when(productoRepository.findById(99L)).thenReturn(Optional.empty());
+        when(productoRepository.buscarPorIdParaActualizar(99L)).thenReturn(Optional.empty());
         when(ventaRepository.generarNumeroVenta()).thenReturn("VTA-000013");
 
         assertThatThrownBy(() ->
@@ -316,7 +317,7 @@ class VentaServiceTest {
     @DisplayName("Venta SIN cliente (idCliente null) — se registra igual con cliente nulo")
     void registrarVenta_sinCliente_seRegistraConClienteNulo() {
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
-        when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
+        when(productoRepository.buscarPorIdParaActualizar(1L)).thenReturn(Optional.of(producto));
         stubGuardado();
 
         Venta resultado = ventaService.registrarVenta(buildRequest(List.of(new ItemVentaRequest(1L, 1))));
@@ -342,7 +343,7 @@ class VentaServiceTest {
     @DisplayName("Venta exitosa — la fecha de venta se asigna automáticamente (no nula)")
     void registrarVenta_fechaSeAsignaAutomaticamente() {
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
-        when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
+        when(productoRepository.buscarPorIdParaActualizar(1L)).thenReturn(Optional.of(producto));
         stubGuardado();
 
         Venta resultado = ventaService.registrarVenta(buildRequest(List.of(new ItemVentaRequest(1L, 1))));
@@ -354,7 +355,7 @@ class VentaServiceTest {
     @DisplayName("Venta con descuento — total = subtotal − descuento; ganancia = total − costo")
     void registrarVenta_conDescuento_totalYGananciaCorrectos() {
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
-        when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
+        when(productoRepository.buscarPorIdParaActualizar(1L)).thenReturn(Optional.of(producto));
         stubGuardado();
 
         VentaRequest req = buildRequest(List.of(new ItemVentaRequest(1L, 2))); // subtotal 3000, costo 2000
@@ -371,7 +372,7 @@ class VentaServiceTest {
     @DisplayName("Descuento mayor al subtotal — el total se limita a cero, nunca negativo")
     void registrarVenta_descuentoExcesivo_totalEnCero() {
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
-        when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
+        when(productoRepository.buscarPorIdParaActualizar(1L)).thenReturn(Optional.of(producto));
         stubGuardado();
 
         VentaRequest req = buildRequest(List.of(new ItemVentaRequest(1L, 1))); // subtotal 1500
@@ -388,7 +389,7 @@ class VentaServiceTest {
         producto.setPrecioVenta(new BigDecimal("800"));
         producto.setCostoUnitario(new BigDecimal("1000"));
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
-        when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
+        when(productoRepository.buscarPorIdParaActualizar(1L)).thenReturn(Optional.of(producto));
         stubGuardado();
 
         Venta resultado = ventaService.registrarVenta(buildRequest(List.of(new ItemVentaRequest(1L, 2))));
@@ -402,7 +403,7 @@ class VentaServiceTest {
     @DisplayName("Partición 'muy grande' (999999999) con stock 10 — rechazada por stock insuficiente")
     void registrarVenta_cantidadMuyGrande_rechazadaPorStock() {
         when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
-        when(productoRepository.findById(1L)).thenReturn(Optional.of(producto));
+        when(productoRepository.buscarPorIdParaActualizar(1L)).thenReturn(Optional.of(producto));
         when(ventaRepository.generarNumeroVenta()).thenReturn("VTA-000099");
 
         assertThatThrownBy(() ->

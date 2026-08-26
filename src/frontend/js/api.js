@@ -1,10 +1,100 @@
 /* ============================================================
    CLIENTE API - EMPLANORTE S.A.S.
-   Wrapper de comunicación con el backend (http://localhost:8080/api)
+   Wrapper de comunicación con el backend (http://127.0.0.1:8080/api)
    ============================================================ */
-const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:8080/api'
-    : 'https://emplanorte-2-cx20.onrender.com/api';
+const API_BASE_URL = (() => {
+    const hostname = window.location.hostname;
+    const configured = typeof window.EMPLANORTE_API_BASE_URL === 'string'
+        ? window.EMPLANORTE_API_BASE_URL.trim().replace(/\/+$/, '')
+        : '';
+
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        // El backend local escucha exclusivamente en IPv4. Usar 127.0.0.1 evita
+        // que "localhost" pueda resolverse a otra instancia levantada en IPv6.
+        return 'http://127.0.0.1:8080/api';
+    }
+    if (configured) return configured;
+    if (hostname === 'emplanorte-2-front.onrender.com') {
+        return 'https://emplanorte-2-cx20.onrender.com/api';
+    }
+    throw new Error(
+        'Falta configurar API_BASE_URL para este sitio. Se bloqueó la conexión para proteger producción.'
+    );
+})();
+
+const AuthSession = (() => {
+    const SESSION_KEY = 'emplanorte_session';
+    const MESSAGE_KEY = 'emplanorte_auth_message';
+    const EXPIRED_MESSAGE = 'Tu sesión ha expirado. Inicia sesión nuevamente.';
+
+    function get() {
+        const raw = localStorage.getItem(SESSION_KEY);
+        if (!raw) return null;
+        try {
+            return JSON.parse(raw);
+        } catch (_) {
+            localStorage.removeItem(SESSION_KEY);
+            return null;
+        }
+    }
+
+    function save(session) {
+        localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    }
+
+    function clear() {
+        localStorage.removeItem(SESSION_KEY);
+    }
+
+    function isExpired(session) {
+        if (!session || !session.expiraEn) return false;
+        const expiration = Date.parse(session.expiraEn);
+        return Number.isFinite(expiration) && expiration <= Date.now();
+    }
+
+    function loginUrl() {
+        return `${window.location.origin}/index.html`;
+    }
+
+    function redirectToLogin(message = '') {
+        clear();
+        if (message) sessionStorage.setItem(MESSAGE_KEY, message);
+        window.location.replace(loginUrl());
+    }
+
+    function consumeMessage() {
+        const message = sessionStorage.getItem(MESSAGE_KEY) || '';
+        sessionStorage.removeItem(MESSAGE_KEY);
+        return message;
+    }
+
+    return {
+        get,
+        save,
+        clear,
+        isExpired,
+        redirectToLogin,
+        consumeMessage,
+        EXPIRED_MESSAGE
+    };
+})();
+
+window.EmplanorteAuthSession = AuthSession;
+
+function apiErrorMessage(data) {
+    return (typeof data === 'object' && data !== null)
+        ? (data.message || data.error || JSON.stringify(data))
+        : String(data || 'Error en la petición');
+}
+
+function handleAuthenticationFailure(endpoint, response, data) {
+    if (response.status !== 401 || endpoint === '/auth/login') return false;
+    const message = data && data.code === 'TOKEN_EXPIRADO'
+        ? AuthSession.EXPIRED_MESSAGE
+        : apiErrorMessage(data);
+    AuthSession.redirectToLogin(message);
+    return true;
+}
 
 // Indicador global para todas las operaciones contra el backend. Usa un contador
 // para no ocultarse antes de tiempo cuando una pantalla lanza varias peticiones.
@@ -63,11 +153,10 @@ const ApiClient = {
         };
 
         // Obtener el token de localStorage si existe
-        const session = localStorage.getItem('emplanorte_session');
+        const session = AuthSession.get();
         if (session) {
-            const { token } = JSON.parse(session);
-            if (token) {
-                headers['Authorization'] = `Bearer ${token}`;
+            if (session.token) {
+                headers['Authorization'] = `Bearer ${session.token}`;
             }
         }
 
@@ -94,15 +183,16 @@ const ApiClient = {
             }
 
             if (!response.ok) {
-                const msg = (typeof data === 'object' && data !== null)
-                    ? (data.message || data.error || JSON.stringify(data))
-                    : String(data || 'Error en la petición');
-                throw new Error(msg);
+                const error = new Error(apiErrorMessage(data));
+                error.authenticationRedirect = handleAuthenticationFailure(endpoint, response, data);
+                throw error;
             }
 
             return data;
         } catch (error) {
-            console.error(`Error en API request [${url}]:`, error);
+            if (!error.authenticationRedirect) {
+                console.error(`Error en API request [${url}]:`, error);
+            }
             throw error;
         } finally {
             LoadingIndicator.ocultar();
@@ -112,10 +202,9 @@ const ApiClient = {
     async requestFormData(endpoint, formData, options = {}) {
         const url = `${API_BASE_URL}${endpoint}`;
         const headers = { ...(options.headers || {}) };
-        const session = localStorage.getItem('emplanorte_session');
+        const session = AuthSession.get();
         if (session) {
-            const { token } = JSON.parse(session);
-            if (token) headers['Authorization'] = `Bearer ${token}`;
+            if (session.token) headers['Authorization'] = `Bearer ${session.token}`;
         }
         LoadingIndicator.mostrar();
         try {
@@ -124,12 +213,15 @@ const ApiClient = {
             let data;
             try { data = JSON.parse(text); } catch (_) { data = text; }
             if (!response.ok) {
-                const msg = typeof data === 'object' && data !== null ? (data.message || data.error || JSON.stringify(data)) : String(data || 'Error en la petición');
-                throw new Error(msg);
+                const error = new Error(apiErrorMessage(data));
+                error.authenticationRedirect = handleAuthenticationFailure(endpoint, response, data);
+                throw error;
             }
             return data;
         } catch (error) {
-            console.error(`Error en API request [${url}]:`, error);
+            if (!error.authenticationRedirect) {
+                console.error(`Error en API request [${url}]:`, error);
+            }
             throw error;
         } finally {
             LoadingIndicator.ocultar();
@@ -147,8 +239,8 @@ const ApiClient = {
     },
 
     logout() {
-        localStorage.removeItem('emplanorte_session');
-        window.location.href = '../index.html';
+        AuthSession.clear();
+        window.location.replace(`${window.location.origin}/index.html`);
     },
 
     // ==========================================
@@ -318,7 +410,52 @@ const ApiClient = {
     },
 
     // ==========================================
-    // 6. MÓDULO COTIZACIONES (RF14)
+    // 6. CARTERA / CRÉDITOS DE CLIENTES
+    // ==========================================
+    async listarCreditos(estado = '', buscar = '') {
+        const params = new URLSearchParams();
+        if (estado) params.set('estado', estado);
+        if (buscar) params.set('buscar', buscar);
+        const query = params.toString() ? `?${params.toString()}` : '';
+        return this.request(`/cartera${query}`, { method: 'GET' });
+    },
+
+    async obtenerResumenCartera() {
+        return this.request('/cartera/resumen', { method: 'GET' });
+    },
+
+    async obtenerCredito(id) {
+        return this.request(`/cartera/${id}`, { method: 'GET' });
+    },
+
+    async obtenerCreditoPorVenta(idVenta) {
+        return this.request(`/cartera/venta/${idVenta}`, { method: 'GET' });
+    },
+
+    async obtenerResumenCarteraCliente(idCliente) {
+        return this.request(`/cartera/cliente/${idCliente}/resumen`, { method: 'GET' });
+    },
+
+    async listarAbonosCredito(idCredito) {
+        return this.request(`/cartera/${idCredito}/abonos`, { method: 'GET' });
+    },
+
+    async registrarAbonoCredito(idCredito, data) {
+        return this.request(`/cartera/${idCredito}/abonos`, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    },
+
+    async actualizarCredito(idCredito, data) {
+        return this.request(`/cartera/${idCredito}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
+    },
+
+    // ==========================================
+    // 7. MÓDULO COTIZACIONES (RF14)
     // ==========================================
     async listarCotizaciones() {
         return this.request('/cotizaciones', { method: 'GET' });
@@ -353,7 +490,7 @@ const ApiClient = {
     },
 
     // ==========================================
-    // 7. MÓDULO PROVEEDORES
+    // 8. MÓDULO PROVEEDORES
     // ==========================================
     async listarProveedores(incluirInactivos = false) { return this.request(`/proveedores?incluirInactivos=${incluirInactivos}`, { method: 'GET' }); },
     async obtenerProveedor(id) { return this.request(`/proveedores/${id}`, { method: 'GET' }); },
@@ -363,7 +500,7 @@ const ApiClient = {
     async desactivarProveedor(id) { return this.request(`/proveedores/${id}`, { method: 'DELETE' }); },
 
     // ==========================================
-    // 8. MÓDULO COMPRAS
+    // 9. MÓDULO COMPRAS
     // ==========================================
     async listarCompras() { return this.request('/compras', { method: 'GET' }); },
     async obtenerCompra(id) { return this.request(`/compras/${id}`, { method: 'GET' }); },
@@ -373,7 +510,7 @@ const ApiClient = {
     async anularCompra(id, data) { return this.request(`/compras/${id}/anular`, { method: 'POST', body: JSON.stringify(data) }); },
 
     // ==========================================
-    // 9. MÓDULO FACTURAS Y PAGOS A PROVEEDORES
+    // 10. MÓDULO FACTURAS Y PAGOS A PROVEEDORES
     // ==========================================
     async listarFacturasProveedores() { return this.request('/facturas-proveedores', { method: 'GET' }); },
     async obtenerFacturaProveedor(id) { return this.request(`/facturas-proveedores/${id}`, { method: 'GET' }); },
@@ -387,7 +524,7 @@ const ApiClient = {
     async anularPagoProveedor(id, data) { return this.request(`/facturas-proveedores/pagos/${id}/anular`, { method: 'POST', body: JSON.stringify(data) }); },
 
     // ==========================================
-    // 10. MÓDULO DASHBOARD & REPORTES (RF11, RF12)
+    // 11. MÓDULO DASHBOARD & REPORTES (RF11, RF12)
     // ==========================================
     async obtenerResumenDashboard(desde, hasta) {
         return this.request(`/dashboard/resumen?desde=${desde}&hasta=${hasta}`, { method: 'GET' });

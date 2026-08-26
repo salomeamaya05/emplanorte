@@ -21,8 +21,24 @@ Configure estas variables en el Web Service `emplanorte-2`:
 - `DB_USERNAME`: usuario de conexión de Supabase.
 - `DB_PASSWORD`: contraseña de la base de datos de Supabase.
 - `CORS_ALLOWED_ORIGINS`: `https://emplanorte-2-front.onrender.com`
+- `AUTH_TOKEN_SECRET`: cadena aleatoria privada de 32 caracteres o más.
+- `AUTH_TOKEN_DURATION_HOURS`: `24`.
 
 No guarde contraseñas en GitHub.
+
+## Despliegue staging sin tocar producción
+
+No cambie la rama de los servicios productivos. Cree dos servicios nuevos desde
+la rama `staging/flete-cartera-auth`:
+
+- Backend staging: Web Service con Root Directory `src/backend` y Dockerfile.
+- Frontend staging: Static Site con Root Directory `src/frontend`, Build Command
+  `bash render-build.sh` y Publish Directory `.`.
+
+El backend staging debe usar una base Supabase separada de producción. En el
+frontend staging configure `API_BASE_URL` con la URL del backend staging terminada
+en `/api`. En el backend staging configure `CORS_ALLOWED_ORIGINS` con la URL exacta
+del frontend staging.
 
 ## Conexión recomendada de Supabase
 

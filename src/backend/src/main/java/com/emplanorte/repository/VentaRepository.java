@@ -12,6 +12,7 @@ import java.util.List;
 @Repository
 public interface VentaRepository extends JpaRepository<Venta, Long> {
     List<Venta> findByEstado(String estado);
+    List<Venta> findByClienteIdAndEstado(Long idCliente, String estado);
 
     @Query(value = "SELECT fn_generar_numero_venta()", nativeQuery = true)
     String generarNumeroVenta();
@@ -22,5 +23,4 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
     @Query("SELECT COALESCE(SUM(v.ganancia), 0) FROM Venta v WHERE v.fechaVenta >= :start AND v.fechaVenta <= :end AND v.estado = :estado")
     BigDecimal obtenerGananciaVentasPorRango(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end, @Param("estado") String estado);
 }
-
 

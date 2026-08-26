@@ -69,8 +69,14 @@ public class ProductoService {
 
     // RF01/RF03 - Validaciones de integridad de los datos del producto
     private void validarProducto(Producto producto) {
+        if (producto.getUnidadesPorPaca() == null) {
+            producto.setUnidadesPorPaca(1);
+        }
         if (producto.getNombre() == null || producto.getNombre().isBlank()) {
             throw new RuntimeException("El nombre del producto es obligatorio");
+        }
+        if (producto.getUnidadesPorPaca() <= 0) {
+            throw new RuntimeException("Las unidades por paca deben ser mayores a cero");
         }
         if (producto.getStockDisponible() != null && producto.getStockDisponible() < 0) {
             throw new RuntimeException("El stock disponible no puede ser negativo");
@@ -106,6 +112,7 @@ public class ProductoService {
         producto.setDescripcion(productoDetalles.getDescripcion());
         producto.setCategoria(productoDetalles.getCategoria());
         producto.setCapacidadMl(productoDetalles.getCapacidadMl());
+        producto.setUnidadesPorPaca(productoDetalles.getUnidadesPorPaca());
         producto.setCostoUnitario(productoDetalles.getCostoUnitario());
         producto.setPrecioVenta(productoDetalles.getPrecioVenta());
         producto.setStockDisponible(productoDetalles.getStockDisponible());

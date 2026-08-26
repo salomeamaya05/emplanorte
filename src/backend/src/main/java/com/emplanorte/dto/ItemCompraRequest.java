@@ -5,5 +5,7 @@ import java.math.BigDecimal;
 public class ItemCompraRequest {
     private Long idProducto;
     private Integer cantidad;
+    private Integer cantidadPacas;
+    private Integer unidadesPorPaca;
     private BigDecimal costoUnitario;
 }

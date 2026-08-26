@@ -11,6 +11,7 @@ import java.util.Optional;
 @Repository
 public interface ProductoRepository extends JpaRepository<Producto, Long> {
     List<Producto> findByActivoTrue();
+    Optional<Producto> findByCodigo(String codigo);
     Optional<Producto> findByCodigoAndActivoTrue(String codigo);
     boolean existsByCategoriaIdAndActivoTrue(Long categoriaId);
 

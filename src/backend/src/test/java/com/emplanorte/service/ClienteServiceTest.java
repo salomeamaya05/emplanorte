@@ -244,4 +244,49 @@ class ClienteServiceTest {
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("formato");
     }
+
+    @Test
+    @DisplayName("Documento opcional se normaliza y permite buscar al cliente sin repetirlo")
+    void guardar_documentoValido_loConserva() {
+        Cliente nuevo = new Cliente();
+        nuevo.setNombre("Cliente con documento");
+        nuevo.setTelefono("3001234567");
+        nuevo.setDocumento("  1090123456  ");
+        when(clienteRepository.findByDocumentoIgnoreCase("1090123456"))
+                .thenReturn(Optional.empty());
+        when(clienteRepository.save(any(Cliente.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Cliente resultado = clienteService.guardar(nuevo);
+
+        assertThat(resultado.getDocumento()).isEqualTo("1090123456");
+    }
+
+    @Test
+    @DisplayName("No permite dos clientes con el mismo documento")
+    void guardar_documentoDuplicado_rechazaCliente() {
+        Cliente nuevo = new Cliente();
+        nuevo.setNombre("Otro cliente");
+        nuevo.setTelefono("3001234567");
+        nuevo.setDocumento("1090123456");
+        when(clienteRepository.findByDocumentoIgnoreCase("1090123456"))
+                .thenReturn(Optional.of(clienteBase));
+
+        assertThatThrownBy(() -> clienteService.guardar(nuevo))
+                .hasMessageContaining("Ya existe un cliente con ese documento");
+        verify(clienteRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("La edición valida nombre y teléfono igual que la creación")
+    void actualizar_datosInvalidos_rechazaCambios() {
+        Cliente cambios = new Cliente();
+        cambios.setNombre("Cliente editado");
+        cambios.setTelefono("teléfono inválido");
+        when(clienteRepository.findById(1L)).thenReturn(Optional.of(clienteBase));
+
+        assertThatThrownBy(() -> clienteService.actualizar(1L, cambios))
+                .hasMessageContaining("formato inválido");
+        assertThat(clienteBase.getNombre()).isEqualTo("Distribuidora Norte");
+        verify(clienteRepository, never()).save(any());
+    }
 }

@@ -3,6 +3,7 @@ package com.emplanorte.controller;
 import com.emplanorte.dto.ItemVentaRequest;
 import com.emplanorte.dto.VentaRequest;
 import com.emplanorte.model.Venta;
+import com.emplanorte.security.JwtTokenService;
 import com.emplanorte.service.VentaService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,11 +13,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 
@@ -34,12 +37,25 @@ class VentaControllerTest {
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
     @MockBean  private VentaService ventaService;
+    @MockBean  private JwtTokenService jwtTokenService;
+
+    private static final String TOKEN = "token-pruebas-ventas";
 
     private Venta ventaMock;
     private VentaRequest requestValido;
 
     @BeforeEach
     void setUp() {
+        when(jwtTokenService.validateToken(TOKEN)).thenReturn(
+                new JwtTokenService.TokenClaims(
+                        1L,
+                        "admin@emplanorte.com",
+                        "Administrador",
+                        "administrador",
+                        Instant.parse("2026-08-25T00:00:00Z"),
+                        Instant.parse("2026-08-26T00:00:00Z")
+                )
+        );
         ventaMock = new Venta();
         ventaMock.setId(1L);
         ventaMock.setNumeroVenta("VTA-000001");
@@ -65,7 +81,8 @@ class VentaControllerTest {
     void listarVentas_retorna200ConLista() throws Exception {
         when(ventaService.obtenerTodas()).thenReturn(List.of(ventaMock));
 
-        mockMvc.perform(get("/api/ventas"))
+        mockMvc.perform(get("/api/ventas")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + TOKEN))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].numeroVenta").value("VTA-000001"))
                 .andExpect(jsonPath("$[0].estado").value("completada"));
@@ -76,7 +93,8 @@ class VentaControllerTest {
     void listarVentas_sinRegistros_retorna200ListaVacia() throws Exception {
         when(ventaService.obtenerTodas()).thenReturn(Collections.emptyList());
 
-        mockMvc.perform(get("/api/ventas"))
+        mockMvc.perform(get("/api/ventas")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + TOKEN))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$").isEmpty());
@@ -90,6 +108,7 @@ class VentaControllerTest {
         when(ventaService.registrarVenta(any(VentaRequest.class))).thenReturn(ventaMock);
 
         mockMvc.perform(post("/api/ventas")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + TOKEN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestValido)))
                 .andExpect(status().isCreated())
@@ -105,6 +124,7 @@ class VentaControllerTest {
                 .thenThrow(new RuntimeException("Stock insuficiente para el producto: Botella PET 500ml"));
 
         mockMvc.perform(post("/api/ventas")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + TOKEN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestValido)))
                 .andExpect(status().isBadRequest())
@@ -123,6 +143,7 @@ class VentaControllerTest {
         sinDetalles.setDetalles(Collections.emptyList());
 
         mockMvc.perform(post("/api/ventas")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + TOKEN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(sinDetalles)))
                 .andExpect(status().isBadRequest());
@@ -135,6 +156,7 @@ class VentaControllerTest {
                 .thenThrow(new RuntimeException("Usuario/Vendedor no encontrado"));
 
         mockMvc.perform(post("/api/ventas")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + TOKEN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestValido)))
                 .andExpect(status().isBadRequest())
@@ -151,6 +173,7 @@ class VentaControllerTest {
         when(ventaService.registrarVenta(any(VentaRequest.class))).thenReturn(ventaMock);
 
         mockMvc.perform(post("/api/ventas")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + TOKEN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestValido)))
                 .andExpect(status().isCreated())
@@ -170,6 +193,7 @@ class VentaControllerTest {
                 .thenThrow(new RuntimeException("La cantidad de cada producto debe ser mayor a cero"));
 
         mockMvc.perform(post("/api/ventas")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + TOKEN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestValido)))
                 .andExpect(status().isBadRequest())
@@ -181,7 +205,8 @@ class VentaControllerTest {
     void listarDetalles_exitoso_retorna200() throws Exception {
         when(ventaService.obtenerDetalles(1L)).thenReturn(Collections.emptyList());
 
-        mockMvc.perform(get("/api/ventas/1/detalles"))
+        mockMvc.perform(get("/api/ventas/1/detalles")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + TOKEN))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray());
     }
@@ -192,7 +217,8 @@ class VentaControllerTest {
         when(ventaService.obtenerDetalles(99L))
                 .thenThrow(new RuntimeException("Venta no encontrada"));
 
-        mockMvc.perform(get("/api/ventas/99/detalles"))
+        mockMvc.perform(get("/api/ventas/99/detalles")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + TOKEN))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Venta no encontrada")));
     }
@@ -201,6 +227,7 @@ class VentaControllerTest {
     @DisplayName("POST /api/ventas con JSON malformado — HTTP 400")
     void registrarVenta_jsonMalformado_retorna400() throws Exception {
         mockMvc.perform(post("/api/ventas")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + TOKEN)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"idUsuario\": 1, "))
                 .andExpect(status().isBadRequest());
@@ -210,6 +237,7 @@ class VentaControllerTest {
     @DisplayName("POST /api/ventas con Content-Type text/plain — HTTP 415 Unsupported Media Type")
     void registrarVenta_contentTypeInvalido_retorna415() throws Exception {
         mockMvc.perform(post("/api/ventas")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + TOKEN)
                         .contentType(MediaType.TEXT_PLAIN)
                         .content("idUsuario=1"))
                 .andExpect(status().isUnsupportedMediaType());
@@ -218,7 +246,8 @@ class VentaControllerTest {
     @Test
     @DisplayName("DELETE /api/ventas — HTTP 405 Method Not Allowed (no existe ese método)")
     void deleteVentas_retorna405() throws Exception {
-        mockMvc.perform(delete("/api/ventas"))
+        mockMvc.perform(delete("/api/ventas")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + TOKEN))
                 .andExpect(status().isMethodNotAllowed());
     }
 }

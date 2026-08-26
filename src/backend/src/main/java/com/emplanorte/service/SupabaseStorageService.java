@@ -2,6 +2,8 @@ package com.emplanorte.service;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.net.URI;
 import java.net.http.*;
 import java.time.Duration;
@@ -11,11 +13,14 @@ public class SupabaseStorageService {
     @Value("${supabase.url:}") private String supabaseUrl;
     @Value("${supabase.secret-key:}") private String secretKey;
     @Value("${supabase.storage.bucket:facturas-proveedores}") private String bucket;
+    @Value("${storage.local.enabled:false}") private boolean localEnabled;
+    @Value("${storage.local.directory:./.local-data/facturas}") private String localDirectory;
     private final HttpClient client=HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(20)).build();
 
     public record ArchivoDescargado(byte[] contenido,String tipo,String nombre){}
 
     public void subir(String ruta,byte[] datos,String tipo){
+        if(localEnabled){subirLocal(ruta,datos);return;}
         validar();
         try{
             HttpRequest req=HttpRequest.newBuilder(URI.create(base()+"/object/"+bucket+"/"+ruta))
@@ -29,6 +34,7 @@ public class SupabaseStorageService {
     }
 
     public ArchivoDescargado descargar(String ruta,String tipo,String nombre){
+        if(localEnabled)return descargarLocal(ruta,tipo,nombre);
         validar();
         try{
             HttpRequest req=HttpRequest.newBuilder(URI.create(base()+"/object/"+bucket+"/"+ruta))
@@ -40,6 +46,26 @@ public class SupabaseStorageService {
          catch(java.io.IOException e){throw new RuntimeException("No fue posible conectar con Supabase Storage");}
     }
     private String base(){return supabaseUrl.replaceAll("/+$","")+"/storage/v1";}
+    private void subirLocal(String ruta,byte[] datos){
+        try{
+            Path destino=rutaLocalSegura(ruta);
+            Files.createDirectories(destino.getParent());
+            Files.write(destino,datos);
+        }catch(java.io.IOException e){throw new RuntimeException("No fue posible guardar el archivo en el entorno local");}
+    }
+    private ArchivoDescargado descargarLocal(String ruta,String tipo,String nombre){
+        try{
+            Path archivo=rutaLocalSegura(ruta);
+            if(!Files.isRegularFile(archivo))throw new RuntimeException("El soporte local no existe");
+            return new ArchivoDescargado(Files.readAllBytes(archivo),tipo!=null?tipo:"application/octet-stream",nombre!=null?nombre:"soporte");
+        }catch(java.io.IOException e){throw new RuntimeException("No fue posible leer el archivo del entorno local");}
+    }
+    private Path rutaLocalSegura(String ruta){
+        Path base=Path.of(localDirectory).toAbsolutePath().normalize();
+        Path destino=base.resolve(ruta).normalize();
+        if(!destino.startsWith(base))throw new RuntimeException("Ruta de archivo local no válida");
+        return destino;
+    }
     private String[] authorizationHeaders(){
         // Las claves legacy service_role son JWT y usan Bearer. Las nuevas sb_secret_* se envían solo como apikey.
         return secretKey != null && secretKey.startsWith("eyJ")

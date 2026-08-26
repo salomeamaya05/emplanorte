@@ -42,20 +42,24 @@ public class CompraService {
         c.setFechaCompra(r.getFechaCompra()!=null?r.getFechaCompra():LocalDateTime.now());
         c.setFlete(noNegativo(r.getFlete(),"El flete"));c.setImpuestos(noNegativo(r.getImpuestos(),"Los impuestos"));
         c.setDescuento(noNegativo(r.getDescuento(),"El descuento"));c.setObservaciones(limpiar(r.getObservaciones()));c.setEstado("registrada");
+        c.setMetodoDistribucionFlete("pacas");
 
         List<ItemPreparado> preparados=new ArrayList<>();
         Set<Long> productosRepetidos=new HashSet<>();
         BigDecimal subtotal=BigDecimal.ZERO;
+        long totalPacas=0;
         for(ItemCompraRequest item:r.getDetalles()){
-            if(item.getIdProducto()==null||item.getCantidad()==null||item.getCantidad()<=0)throw new RuntimeException("Cada producto debe tener una cantidad mayor a cero");
+            if(item.getIdProducto()==null)throw new RuntimeException("Cada línea debe tener un producto");
             if(!productosRepetidos.add(item.getIdProducto()))throw new RuntimeException("No repita el mismo producto en una compra; ajuste la cantidad en una sola línea");
+            EmpaqueCompra empaque=resolverEmpaque(item);
             BigDecimal costo=noNegativo(item.getCostoUnitario(),"El costo unitario");
             if(costo.signum()<=0)throw new RuntimeException("El costo unitario debe ser mayor a cero");
             Producto producto=productoRepo.buscarPorIdParaActualizar(item.getIdProducto()).orElseThrow(()->new RuntimeException("Producto no encontrado"));
             if(!Boolean.TRUE.equals(producto.getActivo()))throw new RuntimeException("El producto "+producto.getNombre()+" está inactivo");
-            BigDecimal subtotalLinea=costo.multiply(BigDecimal.valueOf(item.getCantidad())).setScale(2,RoundingMode.HALF_UP);
-            preparados.add(new ItemPreparado(item,producto,costo,subtotalLinea));
+            BigDecimal subtotalLinea=costo.multiply(BigDecimal.valueOf(empaque.cantidad)).setScale(2,RoundingMode.HALF_UP);
+            preparados.add(new ItemPreparado(producto,costo,subtotalLinea,empaque.cantidad,empaque.cantidadPacas,empaque.unidadesPorPaca));
             subtotal=subtotal.add(subtotalLinea);
+            totalPacas=Math.addExact(totalPacas,empaque.cantidadPacas);
         }
 
         BigDecimal total=subtotal.add(c.getFlete()).add(c.getImpuestos()).subtract(c.getDescuento()).setScale(2,RoundingMode.HALF_UP);
@@ -63,28 +67,41 @@ public class CompraService {
         c.setSubtotal(subtotal);c.setTotal(total);
 
         List<DetalleCompra> detalles=new ArrayList<>();
-        BigDecimal valorInventarioAsignado=BigDecimal.ZERO;
+        BigDecimal fleteAsignadoAcumulado=BigDecimal.ZERO;
+        BigDecimal ajusteAsignadoAcumulado=BigDecimal.ZERO;
+        BigDecimal ajusteTotal=c.getImpuestos().subtract(c.getDescuento()).setScale(2,RoundingMode.HALF_UP);
         for(int indice=0;indice<preparados.size();indice++){
             ItemPreparado x=preparados.get(indice);
-            BigDecimal valorInventarioLinea;
+            BigDecimal fleteAsignado;
+            BigDecimal ajusteAsignado;
             if(indice==preparados.size()-1){
-                valorInventarioLinea=total.subtract(valorInventarioAsignado);
+                fleteAsignado=c.getFlete().subtract(fleteAsignadoAcumulado);
+                ajusteAsignado=ajusteTotal.subtract(ajusteAsignadoAcumulado);
             }else{
-                valorInventarioLinea=x.subtotalLinea.multiply(total).divide(subtotal,2,RoundingMode.HALF_UP);
-                valorInventarioAsignado=valorInventarioAsignado.add(valorInventarioLinea);
+                fleteAsignado=c.getFlete().multiply(BigDecimal.valueOf(x.cantidadPacas))
+                        .divide(BigDecimal.valueOf(totalPacas),2,RoundingMode.HALF_UP);
+                ajusteAsignado=x.subtotalLinea.multiply(ajusteTotal).divide(subtotal,2,RoundingMode.HALF_UP);
+                fleteAsignadoAcumulado=fleteAsignadoAcumulado.add(fleteAsignado);
+                ajusteAsignadoAcumulado=ajusteAsignadoAcumulado.add(ajusteAsignado);
             }
-            if(valorInventarioLinea.signum()<0)valorInventarioLinea=BigDecimal.ZERO;
-            BigDecimal costoInventario=valorInventarioLinea.divide(BigDecimal.valueOf(x.item.getCantidad()),2,RoundingMode.HALF_UP);
+            BigDecimal valorInventarioLinea=x.subtotalLinea.add(fleteAsignado).add(ajusteAsignado).setScale(2,RoundingMode.HALF_UP);
+            if(valorInventarioLinea.signum()<0)throw new RuntimeException("El descuento genera un costo negativo para el producto "+x.producto.getNombre());
+            BigDecimal costoInventario=valorInventarioLinea.divide(BigDecimal.valueOf(x.cantidad),2,RoundingMode.HALF_UP);
+            BigDecimal fleteUnitario=fleteAsignado.divide(BigDecimal.valueOf(x.cantidad),4,RoundingMode.HALF_UP);
 
             int stockAnterior=Optional.ofNullable(x.producto.getStockDisponible()).orElse(0);
             BigDecimal costoAnterior=Optional.ofNullable(x.producto.getCostoUnitario()).orElse(BigDecimal.ZERO);
-            int stockPosterior=stockAnterior+x.item.getCantidad();
+            long stockCalculado=(long)stockAnterior+x.cantidad;
+            if(stockAnterior<0||stockCalculado>Integer.MAX_VALUE)throw new RuntimeException("El stock resultante de "+x.producto.getNombre()+" supera el máximo permitido");
+            int stockPosterior=(int)stockCalculado;
             BigDecimal valorAnterior=costoAnterior.multiply(BigDecimal.valueOf(stockAnterior));
-            BigDecimal valorNuevo=costoInventario.multiply(BigDecimal.valueOf(x.item.getCantidad()));
+            BigDecimal valorNuevo=costoInventario.multiply(BigDecimal.valueOf(x.cantidad));
             BigDecimal costoPromedio=valorAnterior.add(valorNuevo).divide(BigDecimal.valueOf(stockPosterior),2,RoundingMode.HALF_UP);
 
-            DetalleCompra d=new DetalleCompra();d.setProducto(x.producto);d.setCantidad(x.item.getCantidad());
+            DetalleCompra d=new DetalleCompra();d.setProducto(x.producto);d.setCantidad(x.cantidad);
+            d.setCantidadPacas(x.cantidadPacas);d.setUnidadesPorPaca(x.unidadesPorPaca);
             d.setCostoUnitario(x.costo);d.setCostoUnitarioInventario(costoInventario);d.setSubtotalLinea(x.subtotalLinea);
+            d.setFleteAsignado(fleteAsignado);d.setFleteUnitario(fleteUnitario);
             d.setStockAnterior(stockAnterior);d.setCostoAnterior(costoAnterior);d.setStockPosterior(stockPosterior);d.setCostoPromedioPosterior(costoPromedio);
             detalles.add(d);
             x.producto.setStockDisponible(stockPosterior);x.producto.setCostoUnitario(costoPromedio);productoRepo.save(x.producto);
@@ -100,8 +117,37 @@ public class CompraService {
     }
 
     private static class ItemPreparado {
-        private final ItemCompraRequest item;private final Producto producto;private final BigDecimal costo;private final BigDecimal subtotalLinea;
-        private ItemPreparado(ItemCompraRequest item,Producto producto,BigDecimal costo,BigDecimal subtotalLinea){this.item=item;this.producto=producto;this.costo=costo;this.subtotalLinea=subtotalLinea;}
+        private final Producto producto;private final BigDecimal costo;private final BigDecimal subtotalLinea;
+        private final int cantidad;private final int cantidadPacas;private final int unidadesPorPaca;
+        private ItemPreparado(Producto producto,BigDecimal costo,BigDecimal subtotalLinea,int cantidad,int cantidadPacas,int unidadesPorPaca){
+            this.producto=producto;this.costo=costo;this.subtotalLinea=subtotalLinea;this.cantidad=cantidad;
+            this.cantidadPacas=cantidadPacas;this.unidadesPorPaca=unidadesPorPaca;
+        }
+    }
+
+    private static class EmpaqueCompra {
+        private final int cantidad;private final int cantidadPacas;private final int unidadesPorPaca;
+        private EmpaqueCompra(int cantidad,int cantidadPacas,int unidadesPorPaca){
+            this.cantidad=cantidad;this.cantidadPacas=cantidadPacas;this.unidadesPorPaca=unidadesPorPaca;
+        }
+    }
+
+    private EmpaqueCompra resolverEmpaque(ItemCompraRequest item){
+        Integer pacas=item.getCantidadPacas();
+        Integer unidades=item.getUnidadesPorPaca();
+        Integer cantidadInformada=item.getCantidad();
+        if(pacas==null&&unidades==null){
+            if(cantidadInformada==null||cantidadInformada<=0)throw new RuntimeException("Indique las pacas y las unidades por paca de cada producto");
+            return new EmpaqueCompra(cantidadInformada,1,cantidadInformada);
+        }
+        if(pacas==null||unidades==null)throw new RuntimeException("Indique tanto las pacas como las unidades por paca");
+        if(pacas<=0)throw new RuntimeException("La cantidad de pacas debe ser mayor a cero");
+        if(unidades<=0)throw new RuntimeException("Las unidades por paca deben ser mayores a cero");
+        long cantidadCalculada=Math.multiplyExact((long)pacas,(long)unidades);
+        if(cantidadCalculada>Integer.MAX_VALUE)throw new RuntimeException("La cantidad total del producto supera el máximo permitido");
+        int cantidad=(int)cantidadCalculada;
+        if(cantidadInformada!=null&&!cantidadInformada.equals(cantidad))throw new RuntimeException("La cantidad total debe coincidir con pacas × unidades por paca");
+        return new EmpaqueCompra(cantidad,pacas,unidades);
     }
 
     @Transactional

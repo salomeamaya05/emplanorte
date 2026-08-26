@@ -26,8 +26,10 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -61,6 +63,9 @@ public class VentaService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private CarteraService carteraService;
 
     public List<Venta> obtenerTodas() {
         return ventaRepository.findAll(
@@ -113,13 +118,31 @@ public class VentaService {
         }
 
         for (ItemVentaRequest item : request.getDetalles()) {
+            if (item.getIdProducto() == null) {
+                throw new RuntimeException("Debe seleccionar un producto en cada detalle de la venta");
+            }
             if (item.getCantidad() == null || item.getCantidad() <= 0) {
                 throw new RuntimeException("La cantidad de cada producto debe ser mayor a cero");
             }
+        }
 
-            Producto producto = productoRepository.findById(item.getIdProducto())
+        // Bloquear siempre los productos en el mismo orden evita ventas simultáneas
+        // sobre el mismo stock y reduce el riesgo de interbloqueos entre transacciones.
+        Map<Long, Producto> productosBloqueados = new HashMap<>();
+        List<Long> idsProducto = request.getDetalles().stream()
+                .map(ItemVentaRequest::getIdProducto)
+                .distinct()
+                .sorted()
+                .toList();
+        for (Long idProducto : idsProducto) {
+            Producto producto = productoRepository.buscarPorIdParaActualizar(idProducto)
                     .orElseThrow(() -> new RuntimeException(
-                            "Producto con ID " + item.getIdProducto() + " no existe"));
+                            "Producto con ID " + idProducto + " no existe"));
+            productosBloqueados.put(idProducto, producto);
+        }
+
+        for (ItemVentaRequest item : request.getDetalles()) {
+            Producto producto = productosBloqueados.get(item.getIdProducto());
 
             if (producto.getStockDisponible() < item.getCantidad()) {
                 throw new RuntimeException("Stock insuficiente para el producto: " + producto.getNombre()
@@ -171,6 +194,7 @@ public class VentaService {
         }
 
         registrarAuditoria(ventaGuardada, "creacion", usuario, null, null, null);
+        carteraService.crearParaVenta(ventaGuardada, request, usuario);
 
         if (ventaOrigen != null) {
             ventaOrigen.setIdVentaReemplazo(ventaGuardada.getId());
@@ -225,6 +249,7 @@ public class VentaService {
         Cliente clienteNuevo = buscarCliente(request.getIdCliente());
         LocalDateTime fechaNueva = validarFechaVenta(request.getFechaVenta());
         String metodoNuevo = validarMetodoPago(request.getMetodoPago());
+        carteraService.validarCambioMetodoPago(venta, metodoNuevo);
         String observacionesNuevas = limpiarTexto(request.getObservaciones());
 
         List<String> cambios = new ArrayList<>();
@@ -277,6 +302,7 @@ public class VentaService {
 
         Usuario usuario = validarAdministrador(idUsuario, contrasena);
         String motivoValidado = exigirMotivo(motivo);
+        carteraService.validarAnulacion(venta);
 
         List<DetalleVenta> detalles = detalleVentaRepository.findByVentaId(ventaId);
         for (DetalleVenta detalle : detalles) {
@@ -288,6 +314,7 @@ public class VentaService {
         venta.setEstado("anulada");
         venta.setMotivoAnulacion(motivoValidado);
         Venta guardada = ventaRepository.save(venta);
+        carteraService.anularPorVenta(guardada);
 
         String accion = corregir ? "anulacion_correccion" : "anulacion";
         String detalle = corregir

@@ -22,16 +22,7 @@ public class ClienteService {
     }
 
     public Cliente guardar(Cliente cliente) {
-        // CP-40 - El nombre del cliente es obligatorio
-        if (cliente.getNombre() == null || cliente.getNombre().isBlank()) {
-            throw new RuntimeException("El nombre del cliente es obligatorio");
-        }
-        // CP-41 - El teléfono, si viene, debe tener formato válido (7 a 15 dígitos,
-        // admite un prefijo + opcional). Ej.: 3001234567 o +573001234567
-        if (cliente.getTelefono() != null && !cliente.getTelefono().isBlank()
-                && !cliente.getTelefono().trim().matches("\\+?\\d{7,15}")) {
-            throw new RuntimeException("El número de contacto tiene un formato inválido");
-        }
+        validarYNormalizar(cliente, null);
         cliente.setActivo(true);
         return clienteRepository.save(cliente);
     }
@@ -40,7 +31,9 @@ public class ClienteService {
         Cliente cliente = clienteRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
 
+        validarYNormalizar(detalles, id);
         cliente.setNombre(detalles.getNombre());
+        cliente.setDocumento(detalles.getDocumento());
         cliente.setTelefono(detalles.getTelefono());
         cliente.setDireccion(detalles.getDireccion());
         cliente.setObservaciones(detalles.getObservaciones());
@@ -53,5 +46,33 @@ public class ClienteService {
                 .orElseThrow(() -> new RuntimeException("Cliente no encontrado"));
         cliente.setActivo(false);
         clienteRepository.save(cliente);
+    }
+
+    private void validarYNormalizar(Cliente cliente, Long idActual) {
+        if (cliente == null || cliente.getNombre() == null || cliente.getNombre().isBlank()) {
+            throw new RuntimeException("El nombre del cliente es obligatorio");
+        }
+        cliente.setNombre(cliente.getNombre().trim());
+
+        String telefono = cliente.getTelefono() == null ? "" : cliente.getTelefono().trim();
+        if (!telefono.isBlank() && !telefono.matches("\\+?\\d{7,15}")) {
+            throw new RuntimeException("El número de contacto tiene un formato inválido");
+        }
+        cliente.setTelefono(telefono);
+
+        String documento = cliente.getDocumento() == null ? "" : cliente.getDocumento().trim();
+        if (documento.isBlank()) {
+            cliente.setDocumento(null);
+            return;
+        }
+        if (!documento.matches("[A-Za-z0-9][A-Za-z0-9 .-]{2,39}")) {
+            throw new RuntimeException("El documento tiene un formato inválido");
+        }
+        clienteRepository.findByDocumentoIgnoreCase(documento).ifPresent(existente -> {
+            if (idActual == null || !existente.getId().equals(idActual)) {
+                throw new RuntimeException("Ya existe un cliente con ese documento");
+            }
+        });
+        cliente.setDocumento(documento);
     }
 }

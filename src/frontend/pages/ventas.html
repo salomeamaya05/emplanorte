@@ -509,6 +509,12 @@
         .anulacion-option input:checked + .anulacion-card { border-color:var(--primary); box-shadow:0 0 0 3px rgba(49,130,206,.12); background:#f6fbff; }
         .edit-warning { padding:10px 12px; margin-bottom:14px; border-radius:9px; background:#f7f9fc; border:1px solid var(--card-border); color:var(--text-medium); font-size:11px; line-height:1.45; }
 
+        .credit-sale-panel { display:none; margin:4px 0 18px; padding:16px; border:1px solid #f6c453; border-radius:var(--radius-md); background:#fffaf0; }
+        .credit-sale-panel.show { display:block; }
+        .credit-sale-panel h4 { margin:0 0 4px; color:#744210; }
+        .credit-sale-balance { display:flex; justify-content:space-between; gap:12px; margin-top:10px; padding:10px 12px; border-radius:var(--radius-sm); background:#fff; color:var(--text-medium); }
+        .credit-sale-balance strong { color:#c05621; font-size:16px; }
+
         @media (max-width: 650px) {
             .anulacion-options { grid-template-columns:1fr; }
         }
@@ -664,6 +670,42 @@
                                 placeholder="Notas adicionales sobre la venta (opcional)"></textarea>
                         </div>
                     </div>
+
+                    <section class="credit-sale-panel" id="ventaCreditoPanel">
+                        <h4>💳 Condiciones del crédito / fiado</h4>
+                        <p class="form-help">El pago inicial quedará en el historial y el resto aparecerá en Cartera.</p>
+                        <div class="form-row">
+                            <div class="form-group-app">
+                                <label for="ventaPagoInicial">Pago inicial</label>
+                                <input type="number" id="ventaPagoInicial" min="0" step="0.01" value="0" oninput="recalcularTotales()">
+                            </div>
+                            <div class="form-group-app">
+                                <label for="ventaFormaPagoInicial">Forma del pago inicial</label>
+                                <select id="ventaFormaPagoInicial">
+                                    <option value="efectivo">Efectivo</option>
+                                    <option value="transferencia">Transferencia</option>
+                                    <option value="nequi">Nequi</option>
+                                    <option value="daviplata">Daviplata</option>
+                                    <option value="tarjeta">Tarjeta</option>
+                                    <option value="otro">Otro</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group-app">
+                                <label for="ventaFechaVencimientoCredito">Fecha acordada de pago *</label>
+                                <input type="date" id="ventaFechaVencimientoCredito">
+                            </div>
+                            <div class="form-group-app">
+                                <label for="ventaObservacionesCredito">Observaciones del crédito</label>
+                                <textarea id="ventaObservacionesCredito" rows="2" placeholder="Acuerdo realizado con el cliente"></textarea>
+                            </div>
+                        </div>
+                        <div class="credit-sale-balance">
+                            <span>Total de la venta: <b id="ventaCreditoTotal">$ 0</b></span>
+                            <span>Saldo pendiente: <strong id="ventaCreditoSaldo">$ 0</strong></span>
+                        </div>
+                    </section>
 
                     <!-- Líneas de productos -->
                     <div class="form-group-app">
@@ -927,14 +969,16 @@
 
     <!-- Scripts -->
     <script src="../js/vendor/jspdf.umd.min.js"></script>
-    <script src="../js/api.js?v=2.4.0"></script>
-    <script src="../js/utils.js?v=2.4.0"></script>
+    <script src="../js/runtime-config.js?v=2.6.0"></script>
+    <script src="../js/api.js?v=2.6.0"></script>
+    <script src="../js/utils.js?v=2.5.1"></script>
     <script src="../js/quote-export.js?v=2.3.3"></script>
     <script>
         // ---- Estado Global ----
         let ventas = [];
         let clientes = [];
         let productos = [];
+        let creditos = [];
         let lineaCounter = 0;
         let ventaIdEditando = null;
         let ventaIdAnular = null;
@@ -946,6 +990,7 @@
         checkSession();
         renderSidebar('ventas');
         inicializarFiltrosVentas();
+        document.getElementById('ventaMetodoPago').addEventListener('change', toggleCamposCredito);
         cargarDatos();
 
         function inicializarFiltrosVentas() {
@@ -964,14 +1009,16 @@
 
         async function cargarDatos() {
             try {
-                const [ventasData, clientesData, productosData] = await Promise.all([
+                const [ventasData, clientesData, productosData, creditosData] = await Promise.all([
                     ApiClient.listarVentas(),
                     ApiClient.listarClientes(),
-                    ApiClient.listarProductos()
+                    ApiClient.listarProductos(),
+                    ApiClient.listarCreditos()
                 ]);
                 ventas = Array.isArray(ventasData) ? ventasData : [];
                 clientes = Array.isArray(clientesData) ? clientesData : [];
                 productos = Array.isArray(productosData) ? productosData : [];
+                creditos = Array.isArray(creditosData) ? creditosData : [];
 
                 renderTabla();
                 actualizarResumen();
@@ -1103,6 +1150,12 @@
             if (venta.editada) badges.push('<span class="badge badge-edited">Editada</span>');
             if (venta.idVentaOrigen) badges.push('<span class="badge badge-correction">Corrección</span>');
             if (venta.idVentaReemplazo) badges.push('<span class="badge badge-correction">Corregida</span>');
+            const credito = creditos.find(c => Number(c.idVenta) === Number(venta.id));
+            if (credito) {
+                const etiquetas = {pendiente:'Crédito pendiente',vencido:'Crédito vencido',vence_hoy:'Vence hoy',pagado:'Crédito pagado',anulado:'Crédito anulado'};
+                const clase = credito.estado === 'pagado' ? 'badge-success' : credito.estado === 'vencido' ? 'badge-danger' : 'badge-warning';
+                badges.push(`<span class="badge ${clase}">${etiquetas[credito.estado] || 'Crédito'}</span>`);
+            }
             return `<div class="status-stack">${badges.join('')}</div>`;
         }
 
@@ -1249,10 +1302,14 @@
             document.getElementById('ventaTotal').textContent = '$ 0';
             document.getElementById('ventaDescuento').value = '0';
             document.getElementById('ventaFecha').value = fechaHoraLocalInput();
+            document.getElementById('ventaPagoInicial').value = '0';
+            document.getElementById('ventaFechaVencimientoCredito').value = fechaDiasDespues(30);
+            document.getElementById('ventaObservacionesCredito').value = '';
             lineaCounter = 0;
 
             poblarSelectClientes('ventaCliente');
             agregarLineaProducto();
+            toggleCamposCredito();
             openModal('modalNuevaVenta');
         }
 
@@ -1281,6 +1338,17 @@
                 precioUnitario: detalle.precioUnitario
             }));
             if (!detalles || !detalles.length) agregarLineaProducto();
+            if (venta.metodoPago === 'credito') {
+                try {
+                    const credito = await ApiClient.obtenerCreditoPorVenta(venta.id);
+                    document.getElementById('ventaPagoInicial').value = '0';
+                    document.getElementById('ventaFechaVencimientoCredito').value = credito.fechaVencimiento || fechaDiasDespues(30);
+                    document.getElementById('ventaObservacionesCredito').value = credito.observaciones || '';
+                } catch (_) {
+                    document.getElementById('ventaFechaVencimientoCredito').value = fechaDiasDespues(30);
+                }
+            }
+            toggleCamposCredito();
             recalcularTotales();
         }
 
@@ -1445,6 +1513,10 @@
             poblarSelectClientes('editarVentaCliente', venta.cliente ? venta.cliente.id : null);
             document.getElementById('editarVentaFecha').value = fechaHoraLocalInput(venta.fechaVenta);
             document.getElementById('editarVentaMetodo').value = venta.metodoPago || 'efectivo';
+            const selectorMetodo = document.getElementById('editarVentaMetodo');
+            selectorMetodo.disabled = venta.metodoPago === 'credito';
+            const opcionCredito = selectorMetodo.querySelector('option[value="credito"]');
+            if (opcionCredito) opcionCredito.disabled = venta.metodoPago !== 'credito';
             document.getElementById('editarVentaObservaciones').value = venta.observaciones || '';
             document.getElementById('editarVentaMotivo').value = '';
             document.getElementById('editarVentaPassword').value = '';
@@ -1741,6 +1813,23 @@
 
             document.getElementById('ventaSubtotal').textContent = formatCurrency(subtotalGeneral);
             document.getElementById('ventaTotal').textContent = formatCurrency(total);
+            const pagoInicial = Math.max(0, Number(document.getElementById('ventaPagoInicial')?.value) || 0);
+            document.getElementById('ventaCreditoTotal').textContent = formatCurrency(total);
+            document.getElementById('ventaCreditoSaldo').textContent = formatCurrency(Math.max(0, total - pagoInicial));
+        }
+
+        function fechaDiasDespues(dias) {
+            const fecha = new Date();
+            fecha.setDate(fecha.getDate() + dias);
+            const pad = n => String(n).padStart(2, '0');
+            return `${fecha.getFullYear()}-${pad(fecha.getMonth() + 1)}-${pad(fecha.getDate())}`;
+        }
+
+        function toggleCamposCredito() {
+            const esCredito = document.getElementById('ventaMetodoPago').value === 'credito';
+            document.getElementById('ventaCreditoPanel').classList.toggle('show', esCredito);
+            document.getElementById('ventaFechaVencimientoCredito').required = esCredito;
+            recalcularTotales();
         }
 
         // ---- Guardar venta ----
@@ -1752,6 +1841,8 @@
             const fechaVenta = document.getElementById('ventaFecha').value;
             const observaciones = document.getElementById('ventaObservaciones').value.trim();
             const descuento = Math.max(0, Number(document.getElementById('ventaDescuento').value) || 0);
+            const pagoInicial = Math.max(0, Number(document.getElementById('ventaPagoInicial').value) || 0);
+            const fechaVencimientoCredito = document.getElementById('ventaFechaVencimientoCredito').value;
 
             if (!idCliente) {
                 showToast('Selecciona un cliente', 'warning');
@@ -1771,6 +1862,17 @@
             if (new Date(fechaVenta).getTime() > Date.now() + 5 * 60 * 1000) {
                 showToast('La fecha de la venta no puede estar en el futuro', 'warning');
                 return false;
+            }
+
+            if (metodoPago === 'credito') {
+                if (!fechaVencimientoCredito) {
+                    showToast('Indique la fecha acordada para pagar el crédito', 'warning');
+                    return false;
+                }
+                if (fechaVencimientoCredito < fechaVenta.slice(0, 10)) {
+                    showToast('La fecha de pago no puede ser anterior a la venta', 'warning');
+                    return false;
+                }
             }
 
             // Recopilar líneas de producto
@@ -1805,6 +1907,15 @@
                 return false;
             }
 
+            if (metodoPago === 'credito') {
+                const subtotalCredito = detalles.reduce((s, d) => s + d.cantidad * d.precioUnitario, 0);
+                const totalCredito = Math.max(0, subtotalCredito - descuento);
+                if (pagoInicial > totalCredito) {
+                    showToast('El pago inicial no puede superar el total de la venta', 'warning');
+                    return false;
+                }
+            }
+
             // Validación de stock (en ventas SÍ bloquea: no se puede vender sin inventario)
             const sinStock = [];
             for (const d of detalles) {
@@ -1834,6 +1945,12 @@
                 idVentaOrigen: ventaIdOrigen,
                 motivoCorreccion: ventaIdOrigen ? motivoCorreccionActual : null
             };
+            if (metodoPago === 'credito') {
+                ventaData.pagoInicial = pagoInicial;
+                ventaData.formaPagoInicial = document.getElementById('ventaFormaPagoInicial').value;
+                ventaData.fechaVencimientoCredito = fechaVencimientoCredito;
+                ventaData.observacionesCredito = document.getElementById('ventaObservacionesCredito').value.trim();
+            }
 
             // Pago con tarjeta → pasar por la pasarela (débito/crédito) antes de registrar.
             if (metodoPago === 'tarjeta') {

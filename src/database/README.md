@@ -13,3 +13,11 @@ Para mayor orden y facilidad en el mantenimiento, la base de datos se separa en 
 
 ## 🚀 Instalación en PostgreSQL
 Ejecutar los archivos en orden ascendente usando tu cliente preferido (pgAdmin, DBeaver, terminal psql, etc.).
+
+## Actualización: flete distribuido por pacas
+
+En una base de datos que ya contiene compras, ejecutar una sola vez:
+
+`06_MIGRACION_FLETE_POR_PACAS.sql`
+
+La migración es aditiva: conserva productos y compras anteriores, marca sus cálculos como históricos y agrega la presentación por paca para las compras nuevas.

@@ -1,6 +1,7 @@
 package com.emplanorte.controller;
 
 import com.emplanorte.model.Usuario;
+import com.emplanorte.security.JwtTokenService;
 import com.emplanorte.service.AuthService;
 import com.emplanorte.service.LoginAttemptService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,9 @@ public class AuthController {
     @Autowired
     private LoginAttemptService loginAttemptService;
 
+    @Autowired
+    private JwtTokenService jwtTokenService;
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> credentials) {
         String correo = credentials.get("correo");
@@ -58,8 +62,10 @@ public class AuthController {
             response.put("nombre", usuario.getNombre());
             response.put("correo", usuario.getCorreo());
             response.put("rol", usuario.getRol());
-            // En el futuro se puede generar un token JWT aquí
-            response.put("token", "dummy-jwt-token-for-" + usuario.getId());
+            JwtTokenService.IssuedToken issuedToken = jwtTokenService.generateToken(usuario);
+            response.put("token", issuedToken.value());
+            response.put("expiraEn", issuedToken.expiresAt().toString());
+            response.put("duracionTokenSegundos", issuedToken.expiresInSeconds());
             return ResponseEntity.ok(response);
         } else {
             int intentosRestantes = loginAttemptService.registrarFallo(correo);

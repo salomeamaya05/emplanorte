@@ -33,6 +33,9 @@ public class Producto {
     @Column(name = "capacidad_ml")
     private BigDecimal capacidadMl;
 
+    @Column(name = "unidades_por_paca", nullable = false)
+    private Integer unidadesPorPaca = 1;
+
     @Column(name = "costo_unitario", nullable = false)
     private BigDecimal costoUnitario;
 

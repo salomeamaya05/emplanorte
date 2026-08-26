@@ -37,6 +37,9 @@ public class Compra {
     @Column(nullable = false) private BigDecimal descuento;
     @Column(nullable = false) private BigDecimal total;
 
+    @Column(name = "metodo_distribucion_flete", nullable = false, length = 20)
+    private String metodoDistribucionFlete = "pacas";
+
     @Column(nullable = false, length = 20)
     private String estado = "registrada";
 
@@ -55,5 +58,6 @@ public class Compra {
         if (fechaCompra == null) fechaCompra = ahora;
         if (creadoEn == null) creadoEn = ahora;
         if (estado == null) estado = "registrada";
+        if (metodoDistribucionFlete == null) metodoDistribucionFlete = "pacas";
     }
 }

@@ -5,24 +5,36 @@
 
 // ---- Verificar sesión activa ----
 function checkSession() {
-    const session = localStorage.getItem('emplanorte_session');
+    const auth = window.EmplanorteAuthSession;
+    const session = auth ? auth.get() : null;
     if (!session) {
-        window.location.href = '../index.html';
+        if (auth) auth.redirectToLogin();
+        else window.location.href = '../index.html';
         return null;
     }
-    return JSON.parse(session);
+    if (auth && auth.isExpired(session)) {
+        auth.redirectToLogin(auth.EXPIRED_MESSAGE);
+        return null;
+    }
+    return session;
 }
 
 // ---- Obtener datos del usuario activo ----
 function getUser() {
-    const session = localStorage.getItem('emplanorte_session');
-    return session ? JSON.parse(session) : null;
+    const auth = window.EmplanorteAuthSession;
+    return auth ? auth.get() : null;
 }
 
 // ---- Cerrar sesión ----
 function logout() {
-    localStorage.removeItem('emplanorte_session');
-    window.location.href = '../index.html';
+    const auth = window.EmplanorteAuthSession;
+    if (auth) {
+        auth.clear();
+        window.location.replace(`${window.location.origin}/index.html`);
+    } else {
+        localStorage.removeItem('emplanorte_session');
+        window.location.href = '../index.html';
+    }
 }
 
 // ---- Formatear moneda COP ----
@@ -34,13 +46,20 @@ function formatCurrency(value) {
 // ---- Formatear fecha legible ----
 function formatDate(dateStr) {
     if (!dateStr) return '-';
-    const d = new Date(dateStr);
+    // Una fecha sin hora representa un día del negocio, no medianoche UTC.
+    // Agregar la hora local evita que 2026-09-25 se muestre como 24 en Colombia.
+    const value = String(dateStr);
+    const d = /^\d{4}-\d{2}-\d{2}$/.test(value)
+        ? new Date(`${value}T00:00:00`)
+        : new Date(value);
+    if (Number.isNaN(d.getTime())) return '-';
     return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 function formatDateTime(dateStr) {
     if (!dateStr) return '-';
     const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return '-';
     return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }) +
            ' ' + d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
 }
@@ -136,6 +155,9 @@ function renderSidebar(activePage) {
                 </a>
                 <a href="ventas.html" class="nav-item ${activePage === 'ventas' ? 'active' : ''}">
                     <span class="nav-icon">💰</span> Ventas
+                </a>
+                <a href="cartera.html" class="nav-item ${activePage === 'cartera' ? 'active' : ''}">
+                    <span class="nav-icon">💳</span> Cartera
                 </a>
                 <a href="compras.html" class="nav-item ${activePage === 'compras' ? 'active' : ''}">
                     <span class="nav-icon">🛒</span> Compras

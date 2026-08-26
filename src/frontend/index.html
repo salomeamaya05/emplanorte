@@ -69,8 +69,17 @@
     </main>
 
     <!-- Scripts de lógica base -->
-    <script src="js/api.js?v=2.4.0"></script>
+    <script src="js/runtime-config.js?v=2.6.0"></script>
+    <script src="js/api.js?v=2.6.0"></script>
     <script>
+        const pendingAuthMessage = window.EmplanorteAuthSession.consumeMessage();
+        if (pendingAuthMessage) {
+            const errorMsg = document.getElementById('errorMessage');
+            errorMsg.textContent = pendingAuthMessage;
+            errorMsg.classList.remove('hidden');
+            errorMsg.classList.add('show');
+        }
+
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const correo = document.getElementById('correo').value;
@@ -87,7 +96,7 @@
                 const response = await ApiClient.login(correo, contrasena);
                 if (response.token) {
                     // Guardar datos de sesión
-                    localStorage.setItem('emplanorte_session', JSON.stringify(response));
+                    window.EmplanorteAuthSession.save(response);
                     // Redirigir al dashboard
                     window.location.href = 'pages/dashboard.html';
                 } else {
@@ -100,7 +109,7 @@
                 // fetch() lanza TypeError ("Failed to fetch") solo cuando no hay conexión.
                 if (err instanceof TypeError) {
                     errorMsg.textContent = 'No se pudo conectar con el servidor. '
-                        + 'Verifica que el backend esté encendido (http://localhost:8080).';
+                        + 'Verifica que el backend local esté encendido (http://127.0.0.1:8080).';
                 } else {
                     // Mensaje real que envió el backend (credenciales, validación, etc.)
                     errorMsg.textContent = err.message || 'Ocurrió un error al iniciar sesión.';

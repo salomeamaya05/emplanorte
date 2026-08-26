@@ -33,6 +33,22 @@ BEGIN
     END IF;
 END $$;
 
+ALTER TABLE productos
+    ADD COLUMN IF NOT EXISTS unidades_por_paca INTEGER NOT NULL DEFAULT 1;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname='ck_productos_unidades_por_paca_positivas'
+          AND conrelid='productos'::regclass
+    ) THEN
+        ALTER TABLE productos
+            ADD CONSTRAINT ck_productos_unidades_por_paca_positivas
+            CHECK (unidades_por_paca > 0);
+    END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS proveedores (
     id                  BIGSERIAL       PRIMARY KEY,
     nit_documento       VARCHAR(50)     NOT NULL UNIQUE,
@@ -60,6 +76,9 @@ CREATE TABLE IF NOT EXISTS compras (
     impuestos           NUMERIC(14,2)   NOT NULL DEFAULT 0 CHECK (impuestos >= 0),
     descuento           NUMERIC(14,2)   NOT NULL DEFAULT 0 CHECK (descuento >= 0),
     total               NUMERIC(14,2)   NOT NULL DEFAULT 0 CHECK (total >= 0),
+    metodo_distribucion_flete VARCHAR(20) NOT NULL DEFAULT 'pacas'
+                                        CONSTRAINT ck_compras_metodo_distribucion_flete
+                                        CHECK (metodo_distribucion_flete IN ('pacas','valor')),
     estado              VARCHAR(20)     NOT NULL DEFAULT 'registrada'
                                         CHECK (estado IN ('registrada','anulada')),
     observaciones       TEXT,
@@ -73,13 +92,20 @@ CREATE TABLE IF NOT EXISTS detalle_compras (
     id_compra                   BIGINT          NOT NULL REFERENCES compras(id) ON DELETE CASCADE,
     id_producto                 INTEGER         NOT NULL REFERENCES productos(id),
     cantidad                    INTEGER         NOT NULL CHECK (cantidad > 0),
+    cantidad_pacas              INTEGER         NOT NULL
+                                                CONSTRAINT ck_detalle_compras_cantidad_pacas_positiva CHECK (cantidad_pacas > 0),
+    unidades_por_paca           INTEGER         NOT NULL
+                                                CONSTRAINT ck_detalle_compras_unidades_paca_positivas CHECK (unidades_por_paca > 0),
     costo_unitario              NUMERIC(12,2)   NOT NULL CHECK (costo_unitario >= 0),
     costo_unitario_inventario   NUMERIC(12,2)   NOT NULL CHECK (costo_unitario_inventario >= 0),
     subtotal_linea              NUMERIC(14,2)   NOT NULL CHECK (subtotal_linea >= 0),
+    flete_asignado              NUMERIC(14,2)   NOT NULL,
+    flete_unitario              NUMERIC(14,4)   NOT NULL,
     stock_anterior              INTEGER         NOT NULL CHECK (stock_anterior >= 0),
     costo_anterior              NUMERIC(12,2)   NOT NULL CHECK (costo_anterior >= 0),
     stock_posterior             INTEGER         NOT NULL CHECK (stock_posterior >= 0),
-    costo_promedio_posterior    NUMERIC(12,2)   NOT NULL CHECK (costo_promedio_posterior >= 0)
+    costo_promedio_posterior    NUMERIC(12,2)   NOT NULL CHECK (costo_promedio_posterior >= 0),
+    CONSTRAINT ck_detalle_compras_flete_no_negativo CHECK (flete_asignado >= 0 AND flete_unitario >= 0)
 );
 
 CREATE TABLE IF NOT EXISTS facturas_proveedores (
@@ -201,8 +227,8 @@ BEGIN
         SELECT r.tabla, r.columna
         FROM (VALUES
           ('proveedores','id'),('proveedores','nit_documento'),('proveedores','razon_social'),('proveedores','activo'),
-          ('compras','id'),('compras','numero_compra'),('compras','id_proveedor'),('compras','id_usuario'),('compras','total'),('compras','estado'),
-          ('detalle_compras','id'),('detalle_compras','id_compra'),('detalle_compras','id_producto'),('detalle_compras','cantidad'),('detalle_compras','costo_unitario_inventario'),('detalle_compras','stock_anterior'),('detalle_compras','stock_posterior'),('detalle_compras','costo_promedio_posterior'),
+          ('compras','id'),('compras','numero_compra'),('compras','id_proveedor'),('compras','id_usuario'),('compras','total'),('compras','metodo_distribucion_flete'),('compras','estado'),
+          ('detalle_compras','id'),('detalle_compras','id_compra'),('detalle_compras','id_producto'),('detalle_compras','cantidad'),('detalle_compras','cantidad_pacas'),('detalle_compras','unidades_por_paca'),('detalle_compras','flete_asignado'),('detalle_compras','flete_unitario'),('detalle_compras','costo_unitario_inventario'),('detalle_compras','stock_anterior'),('detalle_compras','stock_posterior'),('detalle_compras','costo_promedio_posterior'),
           ('facturas_proveedores','id'),('facturas_proveedores','id_compra'),('facturas_proveedores','numero_factura'),('facturas_proveedores','total_factura'),('facturas_proveedores','saldo_pendiente'),('facturas_proveedores','estado_pago'),('facturas_proveedores','ruta_adjunto'),
           ('pagos_proveedores','id'),('pagos_proveedores','id_factura'),('pagos_proveedores','monto'),('pagos_proveedores','estado'),
           ('auditoria_compras','id'),('auditoria_compras','id_compra'),('auditoria_compras','accion'),

@@ -15,6 +15,11 @@ Desktop.ini
 .env
 .env.*
 !.env.example
+!src/backend/.env.localhost.example
+
+# Entorno local aislado de EMPLANORTE
+.local-data/
+src/backend/.local-data/
 
 # Java / Maven
 *.class

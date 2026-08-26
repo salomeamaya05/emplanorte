@@ -1,6 +1,7 @@
 package com.emplanorte.controller;
 
 import com.emplanorte.model.Usuario;
+import com.emplanorte.security.JwtTokenService;
 import com.emplanorte.service.AuthService;
 import com.emplanorte.service.LoginAttemptService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,12 +14,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.time.Instant;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -55,6 +58,7 @@ class AuthControllerTest {
     @Autowired private ObjectMapper objectMapper;
     @Autowired private LoginAttemptService loginAttemptService;
     @MockBean  private AuthService authService;
+    @MockBean  private JwtTokenService jwtTokenService;
 
     private Usuario usuarioMock;
 
@@ -70,6 +74,24 @@ class AuthControllerTest {
         usuarioMock.setCorreo(CORREO_OK);
         usuarioMock.setRol("administrador");
         usuarioMock.setActivo(true);
+
+        when(jwtTokenService.generateToken(any(Usuario.class))).thenReturn(
+                new JwtTokenService.IssuedToken(
+                        "token-jwt-valido",
+                        Instant.parse("2026-08-26T12:00:00Z"),
+                        86_400
+                )
+        );
+        when(jwtTokenService.validateToken("token-admin")).thenReturn(
+                new JwtTokenService.TokenClaims(
+                        1L,
+                        CORREO_OK,
+                        "Duvan Alvarado",
+                        "administrador",
+                        Instant.parse("2026-08-25T12:00:00Z"),
+                        Instant.parse("2026-08-26T12:00:00Z")
+                )
+        );
     }
 
     private String json(Object body) throws Exception {
@@ -99,7 +121,9 @@ class AuthControllerTest {
                     .andExpect(jsonPath("$.nombre").value("Duvan Alvarado"))
                     .andExpect(jsonPath("$.correo").value(CORREO_OK))
                     .andExpect(jsonPath("$.rol").value("administrador"))
-                    .andExpect(jsonPath("$.token").value("dummy-jwt-token-for-1"));
+                    .andExpect(jsonPath("$.token").value("token-jwt-valido"))
+                    .andExpect(jsonPath("$.expiraEn").value("2026-08-26T12:00:00Z"))
+                    .andExpect(jsonPath("$.duracionTokenSegundos").value(86_400));
         }
 
         @Test
@@ -433,6 +457,20 @@ class AuthControllerTest {
     class RegistroEndpoint {
 
         @Test
+        @DisplayName("Registro sin token → 401 y no modifica usuarios")
+        void registro_sinToken_retorna401() throws Exception {
+            mockMvc.perform(post("/api/auth/registro")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(json(Map.of(
+                                    "nombre", "X",
+                                    "correo", "x@emplanorte.com",
+                                    "contrasena", "Admin2024*"))))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.code").value("AUTENTICACION_REQUERIDA"));
+            verifyNoInteractions(authService);
+        }
+
+        @Test
         @DisplayName("Registro válido → 201 con datos del usuario (sin hash)")
         void registro_valido_retorna201() throws Exception {
             Usuario creado = new Usuario();
@@ -444,6 +482,7 @@ class AuthControllerTest {
             when(authService.registrar(any(), any(), any(), any())).thenReturn(creado);
 
             mockMvc.perform(post("/api/auth/registro")
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer token-admin")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(json(Map.of(
                                     "nombre", "Nuevo Admin",
@@ -459,6 +498,7 @@ class AuthControllerTest {
         @DisplayName("CP-VAL-5: correo sin formato válido \"noesuncorreo\" → 400 'formato'")
         void registro_correoFormatoInvalido_retorna400() throws Exception {
             mockMvc.perform(post("/api/auth/registro")
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer token-admin")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(json(Map.of(
                                     "nombre", "X", "correo", "noesuncorreo", "contrasena", "Admin2024*"))))
@@ -471,6 +511,7 @@ class AuthControllerTest {
         @DisplayName("CP-VAL-6: correo con espacios internos \"a b@c.com\" → 400")
         void registro_correoConEspacios_retorna400() throws Exception {
             mockMvc.perform(post("/api/auth/registro")
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer token-admin")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(json(Map.of(
                                     "nombre", "X", "correo", "a b@c.com", "contrasena", "Admin2024*"))))
@@ -482,6 +523,7 @@ class AuthControllerTest {
         @DisplayName("CP-VAL-7: contraseña sin mayúscula \"admin2024*\" → 400 'mayúscula'")
         void registro_contrasenaSinMayuscula_retorna400() throws Exception {
             mockMvc.perform(post("/api/auth/registro")
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer token-admin")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(json(Map.of(
                                     "nombre", "X", "correo", "x@emplanorte.com", "contrasena", "admin2024*"))))
@@ -494,6 +536,7 @@ class AuthControllerTest {
         @DisplayName("CP-VAL-8: contraseña muy corta \"Ab1\" → 400 (mínimo de caracteres)")
         void registro_contrasenaCorta_retorna400() throws Exception {
             mockMvc.perform(post("/api/auth/registro")
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer token-admin")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(json(Map.of(
                                     "nombre", "X", "correo", "x@emplanorte.com", "contrasena", "Ab1"))))
@@ -505,6 +548,7 @@ class AuthControllerTest {
         @DisplayName("Campos obligatorios faltantes → 400")
         void registro_camposFaltantes_retorna400() throws Exception {
             mockMvc.perform(post("/api/auth/registro")
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer token-admin")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{}"))
                     .andExpect(status().isBadRequest());
@@ -518,6 +562,7 @@ class AuthControllerTest {
                     .thenThrow(new RuntimeException("El correo ya está registrado"));
 
             mockMvc.perform(post("/api/auth/registro")
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer token-admin")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(json(Map.of(
                                     "nombre", "X", "correo", "dup@emplanorte.com", "contrasena", "Admin2024*"))))

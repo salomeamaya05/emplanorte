@@ -11,6 +11,7 @@ public class DashboardFinancieroResponse {
     private LocalDate desde;
     private LocalDate hasta;
     private BigDecimal ventasNetas;
+    private BigDecimal recaudoVentasPeriodo;
     private Long numeroVentas;
     private BigDecimal comprasPeriodo;
     private BigDecimal gastosOperativos;
@@ -19,6 +20,8 @@ public class DashboardFinancieroResponse {
     private BigDecimal gananciaNeta;
     private BigDecimal inventarioValorizado;
     private BigDecimal cuentasPorPagar;
+    private BigDecimal cuentasPorCobrar;
+    private BigDecimal carteraVencida;
     private BigDecimal capitalInvertidoAcumulado;
     private BigDecimal capitalRecuperadoAcumulado;
     private Long facturasVencidas;
@@ -33,6 +36,7 @@ public class DashboardFinancieroResponse {
         private String periodo;
         private String etiqueta;
         private BigDecimal ventas;
+        private BigDecimal recaudo;
         private BigDecimal compras;
         private BigDecimal gastos;
         private BigDecimal gananciaNeta;

@@ -79,6 +79,7 @@
                                 <th>Código</th>
                                 <th>Nombre</th>
                                 <th>Categoría</th>
+                                <th>Unid./paca</th>
                                 <th>Costo</th>
                                 <th>Precio Venta</th>
                                 <th>Stock</th>
@@ -142,6 +143,11 @@
                         <div class="form-group-app">
                             <label for="capacidadMl">Capacidad (ml)</label>
                             <input type="number" id="capacidadMl" placeholder="Ej: 500" min="0" step="1">
+                        </div>
+                        <div class="form-group-app">
+                            <label for="unidadesPorPaca">Unidades habituales por paca</label>
+                            <input type="number" id="unidadesPorPaca" placeholder="Ej: 32" min="1" step="1" value="1" required>
+                            <small>Se precargará al registrar una compra y podrá cambiarse allí.</small>
                         </div>
                     </div>
 
@@ -254,8 +260,9 @@
     </div>
 
     <!-- Scripts -->
-    <script src="../js/api.js?v=2.4.0"></script>
-    <script src="../js/utils.js?v=2.4.0"></script>
+    <script src="../js/runtime-config.js?v=2.6.0"></script>
+    <script src="../js/api.js?v=2.6.0"></script>
+    <script src="../js/utils.js?v=2.5.1"></script>
     <script>
         // ---- Estado de la página ----
         let productos = [];
@@ -430,6 +437,7 @@ function obtenerCapacidadOrden(producto) {
                         <td><strong>${escapeHtml(p.codigo || '-')}</strong></td>
                         <td>${escapeHtml(p.nombre || '-')}</td>
                         <td>${escapeHtml(catNombre)}</td>
+                        <td>${Number(p.unidadesPorPaca) || 1}</td>
                         <td>${formatCurrency(p.costoUnitario)}</td>
                         <td>${formatCurrency(p.precioVenta)}</td>
                         <td class="${esBajo ? 'text-danger fw-bold' : ''}">${stock}</td>
@@ -457,6 +465,7 @@ function obtenerCapacidadOrden(producto) {
             document.getElementById('modalTitle').textContent = 'Agregar Producto';
             document.getElementById('btnGuardar').textContent = 'Guardar Producto';
             resetForm('formProducto');
+            document.getElementById('unidadesPorPaca').value = '1';
             syncSearchableSelect('categoriaSelect');
             document.getElementById('productoId').value = '';
             openModal('modalProducto');
@@ -476,11 +485,14 @@ function obtenerCapacidadOrden(producto) {
                 document.getElementById('categoriaSelect').value = producto.categoria ? producto.categoria.id : '';
                 syncSearchableSelect('categoriaSelect');
                 document.getElementById('capacidadMl').value = producto.capacidadMl || '';
+                document.getElementById('unidadesPorPaca').value = producto.unidadesPorPaca || 1;
                 document.getElementById('costoUnitario').value = producto.costoUnitario || '';
                 document.getElementById('precioVenta').value = producto.precioVenta || '';
                 document.getElementById('stockDisponible').value = producto.stockDisponible || '';
                 document.getElementById('stockMinimo').value = producto.stockMinimo || '';
-                document.getElementById('unidadMedida').value = producto.unidadMedida || '';
+                const unidadesHistoricas = { unidad: 'unidades', mililitros: 'ml', kilogramos: 'kg' };
+                document.getElementById('unidadMedida').value =
+                    unidadesHistoricas[producto.unidadMedida] || producto.unidadMedida || '';
                 openModal('modalProducto');
             } catch (err) {
                 console.error('Error al obtener producto:', err);
@@ -504,6 +516,7 @@ function obtenerCapacidadOrden(producto) {
                 descripcion: document.getElementById('descripcion').value.trim(),
                 categoria: categoriaId ? { id: Number(categoriaId) } : null,
                 capacidadMl: document.getElementById('capacidadMl').value ? Number(document.getElementById('capacidadMl').value) : null,
+                unidadesPorPaca: Number(document.getElementById('unidadesPorPaca').value),
                 costoUnitario: Number(document.getElementById('costoUnitario').value),
                 precioVenta: Number(document.getElementById('precioVenta').value),
                 stockDisponible: Number(document.getElementById('stockDisponible').value),

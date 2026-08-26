@@ -55,6 +55,8 @@ CREATE TABLE productos (
     descripcion         TEXT,
     id_categoria        INT             NOT NULL REFERENCES categorias_producto(id),
     capacidad_ml        DECIMAL(10,2),
+    unidades_por_paca   INT             NOT NULL DEFAULT 1
+                                        CONSTRAINT ck_productos_unidades_por_paca_positivas CHECK (unidades_por_paca > 0),
     costo_unitario      DECIMAL(12,2)   NOT NULL CHECK (costo_unitario >= 0),
     precio_venta        DECIMAL(12,2)   NOT NULL CHECK (precio_venta >= 0),
     stock_disponible    INT             NOT NULL DEFAULT 0 CHECK (stock_disponible >= 0),

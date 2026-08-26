@@ -19,6 +19,9 @@ public class Cliente {
     @Column(nullable = false, length = 150)
     private String nombre;
 
+    @Column(length = 40, unique = true)
+    private String documento;
+
     @Column(nullable = false, length = 20)
     private String telefono;
 

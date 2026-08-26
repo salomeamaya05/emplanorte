@@ -21,4 +21,16 @@ Interfaz de usuario del sistema construida utilizando **HTML5**, **CSS3** y **Ja
   - `auth.js` (Manejo del token de sesión)
 
 ## 🚀 Integración con el Backend
-Toda petición de datos se realiza a través del cliente unificado en `js/api.js` que apunta a los endpoints configurados en el backend (`http://localhost:8080/api/...`).
+Toda petición de datos se realiza a través del cliente unificado en `js/api.js` que apunta a los endpoints configurados en el backend (`http://127.0.0.1:8080/api/...` en local).
+
+## Configuración en Render
+
+Para un Static Site de pruebas configure:
+
+- Root Directory: `src/frontend`
+- Build Command: `bash render-build.sh`
+- Publish Directory: `.`
+- Variable pública `API_BASE_URL`: URL completa del backend correspondiente, terminada en `/api`.
+
+El build se detiene si falta `API_BASE_URL`. Esto evita que un frontend staging
+termine conectado accidentalmente al backend productivo.

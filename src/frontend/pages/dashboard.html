@@ -6,7 +6,7 @@
     <title>EMPLANORTE - Dashboard Financiero</title>
     <link rel="icon" type="image/png" href="../img/Logo.png">
     <link rel="stylesheet" href="../css/app.css?v=2.4.0">
-    <link rel="stylesheet" href="../css/finance.css?v=2.3.0">
+    <link rel="stylesheet" href="../css/finance.css?v=2.5.1">
 </head>
 <body class="app-body">
 <main class="main-content">
@@ -41,7 +41,11 @@
         <section class="fin-grid dashboard-primary">
             <article class="fin-kpi" title="Dinero de ventas completadas. No incluye ventas anuladas.">
                 <div class="fin-kpi-icon">💰</div>
-                <div><div class="fin-kpi-label">Ventas netas</div><div class="fin-kpi-value" id="vVentas">$ 0</div><div class="fin-kpi-note" id="nVentas">0 ventas completadas</div></div>
+                <div><div class="fin-kpi-label">Ventas registradas</div><div class="fin-kpi-value" id="vVentas">$ 0</div><div class="fin-kpi-note" id="nVentas">0 ventas completadas</div></div>
+            </article>
+            <article class="fin-kpi" title="Dinero realmente recibido durante el período: ventas de contado más abonos de créditos.">
+                <div class="fin-kpi-icon">💵</div>
+                <div><div class="fin-kpi-label">Recaudo del período</div><div class="fin-kpi-value" id="vRecaudo">$ 0</div><div class="fin-kpi-note">Contado y abonos recibidos</div></div>
             </article>
             <article class="fin-kpi" title="Ventas netas menos el costo de los productos vendidos.">
                 <div class="fin-kpi-icon">📈</div>
@@ -62,6 +66,20 @@
             <article class="fin-kpi"><div class="fin-kpi-icon">📋</div><div><div class="fin-kpi-label">Gastos operativos</div><div class="fin-kpi-value" id="vGastos">$ 0</div><div class="fin-kpi-note">No incluye compras</div></div></article>
             <article class="fin-kpi"><div class="fin-kpi-icon">🏷️</div><div><div class="fin-kpi-label">Inventario al costo</div><div class="fin-kpi-value" id="vInventario">$ 0</div><div class="fin-kpi-note">Mercancía disponible</div></div></article>
             <article class="fin-kpi"><div class="fin-kpi-icon">🧾</div><div><div class="fin-kpi-label">Cuentas por pagar</div><div class="fin-kpi-value" id="vPagar">$ 0</div><div class="fin-kpi-note">Facturas pendientes y parciales</div></div></article>
+        </section>
+        <div class="dashboard-capital-note" style="margin-top:-10px;margin-bottom:18px">
+            Las ventas muestran lo facturado; el recaudo muestra el dinero recibido. En una venta a crédito pueden ser valores distintos.
+        </div>
+
+        <div class="dashboard-section-title">
+            <h2>Cartera</h2>
+            <a href="cartera.html" style="font-size:11px;color:#3182ce;font-weight:700">Ver créditos y abonos</a>
+        </div>
+        <section class="fin-grid dashboard-secondary">
+            <article class="fin-kpi"><div class="fin-kpi-icon">💳</div><div><div class="fin-kpi-label">Total por cobrar</div><div class="fin-kpi-value" id="vCartera">$ 0</div><div class="fin-kpi-note" id="nCartera">0 clientes con saldo</div></div></article>
+            <article class="fin-kpi"><div class="fin-kpi-icon">🚨</div><div><div class="fin-kpi-label">Créditos vencidos</div><div class="fin-kpi-value" id="vCarteraVencida">$ 0</div><div class="fin-kpi-note" id="nCarteraVencida">0 créditos</div></div></article>
+            <article class="fin-kpi"><div class="fin-kpi-icon">⏰</div><div><div class="fin-kpi-label">Vencen hoy</div><div class="fin-kpi-value" id="nVencenHoy">0</div><div class="fin-kpi-note">Requieren seguimiento</div></div></article>
+            <article class="fin-kpi"><div class="fin-kpi-icon">📆</div><div><div class="fin-kpi-label">Saldo por vencer</div><div class="fin-kpi-value" id="vCarteraPorVencer">$ 0</div><div class="fin-kpi-note">Todavía dentro del plazo</div></div></article>
         </section>
 
         <section class="fin-grid fin-two">
@@ -106,8 +124,9 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="../js/vendor/jspdf.umd.min.js"></script>
 <script src="../js/vendor/jspdf.plugin.autotable.min.js"></script>
-<script src="../js/api.js?v=2.4.0"></script>
-<script src="../js/utils.js?v=2.4.0"></script>
+<script src="../js/runtime-config.js?v=2.6.0"></script>
+<script src="../js/api.js?v=2.6.0"></script>
+<script src="../js/utils.js?v=2.5.1"></script>
 <script>
 checkSession();
 renderSidebar('dashboard');
@@ -136,10 +155,14 @@ function monedaPlano(valor) {
 async function cargar() {
     btnActualizar.disabled = true;
     try {
-        const r = await ApiClient.obtenerBalanceCompleto(desde.value, hasta.value);
+        const [r, cartera] = await Promise.all([
+            ApiClient.obtenerBalanceCompleto(desde.value, hasta.value),
+            ApiClient.obtenerResumenCartera()
+        ]);
         balanceActual = r;
         periodoTexto.textContent = `${fechaLegible(desde.value)} al ${fechaLegible(hasta.value)}`;
         vVentas.textContent = formatCurrency(r.ventasNetas);
+        vRecaudo.textContent = formatCurrency(r.recaudoVentasPeriodo);
         nVentas.textContent = `${r.numeroVentas || 0} ventas completadas`;
         vCosto.textContent = formatCurrency(r.costoVentas);
         vBruta.textContent = formatCurrency(r.gananciaBruta);
@@ -154,6 +177,12 @@ async function cargar() {
         aVencidas.textContent = r.facturasVencidas || 0;
         aProximas.textContent = r.facturasPorVencer || 0;
         aStock.textContent = r.productosStockBajo || 0;
+        vCartera.textContent = formatCurrency(cartera.totalPorCobrar);
+        nCartera.textContent = `${cartera.clientesConSaldo || 0} clientes con saldo`;
+        vCarteraVencida.textContent = formatCurrency(cartera.totalVencido);
+        nCarteraVencida.textContent = `${cartera.creditosVencidos || 0} créditos`;
+        nVencenHoy.textContent = cartera.vencenHoy || 0;
+        vCarteraPorVencer.textContent = formatCurrency(cartera.totalPorVencer);
 
         if (num(r.capitalInvertidoAcumulado) > 0) {
             const pct = Math.min(100, num(r.capitalRecuperadoAcumulado) / num(r.capitalInvertidoAcumulado) * 100);
@@ -181,6 +210,7 @@ function dibujar(serie) {
             labels: serie.map(x => x.etiqueta),
             datasets: [
                 {label:'Ventas', data:serie.map(x=>num(x.ventas)), borderColor:'#2f855a', backgroundColor:'rgba(47,133,90,.08)', tension:.25, borderWidth:2, pointRadius:3},
+                {label:'Recaudo', data:serie.map(x=>num(x.recaudo)), borderColor:'#d69e2e', backgroundColor:'rgba(214,158,46,.06)', tension:.25, borderWidth:2, pointRadius:3},
                 {label:'Compras', data:serie.map(x=>num(x.compras)), borderColor:'#6b46c1', backgroundColor:'rgba(107,70,193,.06)', tension:.25, borderWidth:2, pointRadius:3},
                 {label:'Gastos', data:serie.map(x=>num(x.gastos)), borderColor:'#c53030', backgroundColor:'rgba(197,48,48,.06)', tension:.25, borderWidth:2, pointRadius:3},
                 {label:'Ganancia neta', data:serie.map(x=>num(x.gananciaNeta)), borderColor:'#2b6cb0', backgroundColor:'rgba(43,108,176,.06)', tension:.25, borderWidth:2, pointRadius:3}
@@ -254,14 +284,17 @@ async function descargarPDF() {
             startY:88,
             head:[['Indicador','Valor']],
             body:[
-                ['Ventas netas', monedaPlano(balanceActual.ventasNetas)],
+                ['Ventas registradas', monedaPlano(balanceActual.ventasNetas)],
+                ['Recaudo del período', monedaPlano(balanceActual.recaudoVentasPeriodo)],
                 ['Costo de lo vendido', monedaPlano(balanceActual.costoVentas)],
                 ['Ganancia bruta', monedaPlano(balanceActual.gananciaBruta)],
                 ['Gastos operativos', monedaPlano(balanceActual.gastosOperativos)],
                 ['Ganancia neta', monedaPlano(balanceActual.gananciaNeta)],
                 ['Compras del período', monedaPlano(balanceActual.comprasPeriodo)],
                 ['Inventario valorizado', monedaPlano(balanceActual.inventarioValorizado)],
-                ['Cuentas por pagar', monedaPlano(balanceActual.cuentasPorPagar)]
+                ['Cuentas por pagar', monedaPlano(balanceActual.cuentasPorPagar)],
+                ['Cuentas por cobrar', monedaPlano(balanceActual.cuentasPorCobrar)],
+                ['Cartera vencida', monedaPlano(balanceActual.carteraVencida)]
             ],
             theme:'grid',
             headStyles:{fillColor:verde},
@@ -330,9 +363,10 @@ async function descargarExcel() {
         filas.push('');
         agregar(['INDICADOR','VALOR']);
         [
-            ['Ventas netas',balanceActual.ventasNetas],['Costo de lo vendido',balanceActual.costoVentas],['Ganancia bruta',balanceActual.gananciaBruta],
+            ['Ventas registradas',balanceActual.ventasNetas],['Recaudo del período',balanceActual.recaudoVentasPeriodo],['Costo de lo vendido',balanceActual.costoVentas],['Ganancia bruta',balanceActual.gananciaBruta],
             ['Gastos operativos',balanceActual.gastosOperativos],['Ganancia neta',balanceActual.gananciaNeta],['Compras del período',balanceActual.comprasPeriodo],
-            ['Inventario valorizado',balanceActual.inventarioValorizado],['Cuentas por pagar',balanceActual.cuentasPorPagar]
+            ['Inventario valorizado',balanceActual.inventarioValorizado],['Cuentas por pagar',balanceActual.cuentasPorPagar],
+            ['Cuentas por cobrar',balanceActual.cuentasPorCobrar],['Cartera vencida',balanceActual.carteraVencida]
         ].forEach(x=>agregar([x[0],num(x[1])]));
         filas.push(''); agregar(['VENTAS']); agregar(['Número','Fecha','Cliente','Total','Ganancia']);
         detalle.ventas.forEach(v=>agregar([v.numeroVenta||v.id,formatDateTime(v.fechaVenta),v.cliente?.nombre||'',num(v.total),num(v.ganancia)]));
