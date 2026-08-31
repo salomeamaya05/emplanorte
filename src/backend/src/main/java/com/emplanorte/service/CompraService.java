@@ -45,12 +45,10 @@ public class CompraService {
         c.setMetodoDistribucionFlete("pacas");
 
         List<ItemPreparado> preparados=new ArrayList<>();
-        Set<Long> productosRepetidos=new HashSet<>();
         BigDecimal subtotal=BigDecimal.ZERO;
         long totalPacas=0;
         for(ItemCompraRequest item:r.getDetalles()){
             if(item.getIdProducto()==null)throw new RuntimeException("Cada línea debe tener un producto");
-            if(!productosRepetidos.add(item.getIdProducto()))throw new RuntimeException("No repita el mismo producto en una compra; ajuste la cantidad en una sola línea");
             EmpaqueCompra empaque=resolverEmpaque(item);
             BigDecimal costo=noNegativo(item.getCostoUnitario(),"El costo unitario");
             if(costo.signum()<=0)throw new RuntimeException("El costo unitario debe ser mayor a cero");
@@ -160,13 +158,28 @@ public class CompraService {
         if(factura.isPresent()&&pagoRepo.existsByFacturaIdAndEstado(factura.get().getId(),"activo"))throw new RuntimeException("No puede anular la compra porque su factura ya tiene pagos. Primero anule los pagos registrados.");
 
         List<DetalleCompra> detalles=detalleRepo.findByCompraIdOrderByIdAsc(id);
-        for(DetalleCompra d:detalles){
-            Producto p=productoRepo.buscarPorIdParaActualizar(d.getProducto().getId()).orElseThrow(()->new RuntimeException("Producto no encontrado"));
-            boolean stockIgual=Objects.equals(p.getStockDisponible(),d.getStockPosterior());
-            boolean costoIgual=p.getCostoUnitario()!=null&&p.getCostoUnitario().compareTo(d.getCostoPromedioPosterior())==0;
+        List<DetalleCompra> detallesReversos=new ArrayList<>(detalles);
+        Collections.reverse(detallesReversos);
+        Map<Long,Producto> productosBloqueados=new LinkedHashMap<>();
+        Map<Long,EstadoInventario> estadosEsperados=new HashMap<>();
+        for(DetalleCompra d:detallesReversos){
+            Long idProducto=d.getProducto().getId();
+            Producto p=productosBloqueados.get(idProducto);
+            if(p==null){
+                p=productoRepo.buscarPorIdParaActualizar(idProducto).orElseThrow(()->new RuntimeException("Producto no encontrado"));
+                productosBloqueados.put(idProducto,p);
+                estadosEsperados.put(idProducto,new EstadoInventario(p.getStockDisponible(),p.getCostoUnitario()));
+            }
+            EstadoInventario estado=estadosEsperados.get(idProducto);
+            boolean stockIgual=Objects.equals(estado.stock,d.getStockPosterior());
+            boolean costoIgual=estado.costo!=null&&d.getCostoPromedioPosterior()!=null&&estado.costo.compareTo(d.getCostoPromedioPosterior())==0;
             if(!stockIgual||!costoIgual)throw new RuntimeException("No se puede anular: el inventario de '"+p.getNombre()+"' cambió después de la compra. Para conservar costos y stock correctos, realice un ajuste documentado en inventario.");
+            estadosEsperados.put(idProducto,new EstadoInventario(d.getStockAnterior(),d.getCostoAnterior()));
         }
-        for(DetalleCompra d:detalles){Producto p=productoRepo.buscarPorIdParaActualizar(d.getProducto().getId()).orElseThrow();p.setStockDisponible(d.getStockAnterior());p.setCostoUnitario(d.getCostoAnterior());productoRepo.save(p);}
+        for(Map.Entry<Long,Producto> entry:productosBloqueados.entrySet()){
+            EstadoInventario estado=estadosEsperados.get(entry.getKey());
+            Producto p=entry.getValue();p.setStockDisponible(estado.stock);p.setCostoUnitario(estado.costo);productoRepo.save(p);
+        }
         c.setEstado("anulada");c.setMotivoAnulacion(r.getMotivo().trim());c.setAnuladoEn(LocalDateTime.now());Compra g=compraRepo.save(c);
         factura.ifPresent(f->{f.setEstadoPago("anulada");f.setSaldoPendiente(BigDecimal.ZERO);facturaRepo.save(f);});auditar(g,"anulacion",u,r.getMotivo());return g;
     }
@@ -175,6 +188,10 @@ public class CompraService {
         if(r==null||r.getIdUsuario()==null)throw new RuntimeException("No se identificó al usuario");
         Usuario u=usuarioRepo.findById(r.getIdUsuario()).orElseThrow(()->new RuntimeException("Usuario no encontrado"));
         if(r.getContrasena()==null||!encoder.matches(r.getContrasena(),u.getContrasenaHash()))throw new RuntimeException("Contraseña incorrecta");return u;
+    }
+    private static class EstadoInventario {
+        private final Integer stock;private final BigDecimal costo;
+        private EstadoInventario(Integer stock,BigDecimal costo){this.stock=stock;this.costo=costo;}
     }
     private void auditar(Compra c,String accion,Usuario u,String motivo){AuditoriaCompra a=new AuditoriaCompra();a.setIdCompra(c.getId());a.setIdUsuario(u.getId());a.setUsuarioNombre(u.getNombre());a.setAccion(accion);a.setNumeroCompra(c.getNumeroCompra());a.setTotal(c.getTotal());a.setEstado(c.getEstado());a.setMotivo(motivo);auditoriaRepo.save(a);}
     private BigDecimal noNegativo(BigDecimal v,String nombre){BigDecimal x=v==null?BigDecimal.ZERO:v;if(x.signum()<0)throw new RuntimeException(nombre+" no puede ser negativo");return x.setScale(2,RoundingMode.HALF_UP);}

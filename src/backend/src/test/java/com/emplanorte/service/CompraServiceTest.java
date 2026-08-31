@@ -236,17 +236,34 @@ class CompraServiceTest {
     }
 
     @Test
-    @DisplayName("Rechaza el mismo producto repetido para evitar cálculos ambiguos")
-    void registrar_productoDuplicado_rechazaCompra() {
+    @DisplayName("Permite repetir el mismo producto en pacas con presentaciones diferentes")
+    void registrar_productoRepetido_conservaCadaPresentacionYActualizaInventarioEnOrden() {
         Producto producto = producto(11L, "Producto A", "100");
         when(productoRepo.buscarPorIdParaActualizar(11L)).thenReturn(Optional.of(producto));
 
-        assertThatThrownBy(() -> service.registrar(compra(
-                item(11L, 1, 10, "100"),
-                item(11L, 2, 10, "100")
-        ))).hasMessageContaining("No repita el mismo producto");
-        verify(compraRepo, never()).save(any());
-        verify(detalleRepo, never()).save(any());
+        CompraRequest request = compra(
+                item(11L, 2, 24, "100"),
+                item(11L, 1, 12, "120")
+        );
+        request.setFlete(new BigDecimal("300"));
+
+        service.registrar(request);
+
+        ArgumentCaptor<DetalleCompra> captor = ArgumentCaptor.forClass(DetalleCompra.class);
+        verify(detalleRepo, times(2)).save(captor.capture());
+        List<DetalleCompra> detalles = captor.getAllValues();
+        assertThat(detalles).extracting(DetalleCompra::getCantidadPacas).containsExactly(2, 1);
+        assertThat(detalles).extracting(DetalleCompra::getUnidadesPorPaca).containsExactly(24, 12);
+        assertThat(detalles).extracting(DetalleCompra::getCantidad).containsExactly(48, 12);
+        assertThat(detalles).extracting(d -> d.getProducto().getId()).containsExactly(11L, 11L);
+        assertThat(detalles.get(0).getStockAnterior()).isZero();
+        assertThat(detalles.get(0).getStockPosterior()).isEqualTo(48);
+        assertThat(detalles.get(1).getStockAnterior()).isEqualTo(48);
+        assertThat(detalles.get(1).getStockPosterior()).isEqualTo(60);
+        assertThat(detalles.get(0).getFleteAsignado()).isEqualByComparingTo("200.00");
+        assertThat(detalles.get(1).getFleteAsignado()).isEqualByComparingTo("100.00");
+        assertThat(producto.getStockDisponible()).isEqualTo(60);
+        assertThat(producto.getCostoUnitario()).isEqualByComparingTo("109.00");
     }
 
     @Test

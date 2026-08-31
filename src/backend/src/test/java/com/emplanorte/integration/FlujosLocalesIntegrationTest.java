@@ -1,6 +1,7 @@
 package com.emplanorte.integration;
 
 import com.emplanorte.dto.AbonoCreditoRequest;
+import com.emplanorte.dto.AnulacionRequest;
 import com.emplanorte.dto.CompraRequest;
 import com.emplanorte.dto.DashboardFinancieroResponse;
 import com.emplanorte.dto.ItemCompraRequest;
@@ -148,6 +149,55 @@ class FlujosLocalesIntegrationTest {
         );
         assertThat(productoRepository.findById(grande.getId()).orElseThrow().getStockDisponible())
                 .isEqualTo(420);
+    }
+
+    @Test
+    @DisplayName("Una compra repite el producto en presentaciones distintas y la anulación restaura el inventario")
+    void compraConProductoRepetido_conservaLineasYSeAnulaEnOrdenInverso() {
+        Producto producto = producto("E2E-REP", "Producto en varias pacas", 24, "1000", "2500", 50);
+
+        CompraRequest solicitud = new CompraRequest();
+        solicitud.setIdProveedor(proveedor.getId());
+        solicitud.setIdUsuario(usuario.getId());
+        solicitud.setFechaCompra(LocalDateTime.now().minusHours(1));
+        solicitud.setFlete(new BigDecimal("9000"));
+        solicitud.setImpuestos(BigDecimal.ZERO);
+        solicitud.setDescuento(BigDecimal.ZERO);
+        solicitud.setRegistrarFactura(false);
+        solicitud.setDetalles(List.of(
+                itemCompra(producto.getId(), 2, 24, "1000"),
+                itemCompra(producto.getId(), 1, 12, "1200")
+        ));
+
+        Compra compra = compraService.registrar(solicitud);
+        List<DetalleCompra> detalles = compraService.detalles(compra.getId());
+
+        assertThat(detalles).hasSize(2);
+        assertThat(detalles).extracting(d -> d.getProducto().getId())
+                .containsExactly(producto.getId(), producto.getId());
+        assertThat(detalles).extracting(DetalleCompra::getCantidadPacas).containsExactly(2, 1);
+        assertThat(detalles).extracting(DetalleCompra::getUnidadesPorPaca).containsExactly(24, 12);
+        assertThat(detalles).extracting(DetalleCompra::getCantidad).containsExactly(48, 12);
+        assertThat(detalles.get(0).getFleteAsignado()).isEqualByComparingTo("6000.00");
+        assertThat(detalles.get(1).getFleteAsignado()).isEqualByComparingTo("3000.00");
+        assertThat(detalles.get(0).getStockAnterior()).isEqualTo(50);
+        assertThat(detalles.get(0).getStockPosterior()).isEqualTo(98);
+        assertThat(detalles.get(1).getStockAnterior()).isEqualTo(98);
+        assertThat(detalles.get(1).getStockPosterior()).isEqualTo(110);
+        assertThat(productoRepository.findById(producto.getId()).orElseThrow().getStockDisponible())
+                .isEqualTo(110);
+        assertThat(productoRepository.findById(producto.getId()).orElseThrow().getCostoUnitario())
+                .isEqualByComparingTo("1103.63");
+
+        AnulacionRequest anulacion = new AnulacionRequest();
+        anulacion.setIdUsuario(usuario.getId());
+        anulacion.setContrasena("ClaveLocal2026!");
+        anulacion.setMotivo("Anulación ficticia de compra repetida");
+        compraService.anular(compra.getId(), anulacion);
+
+        Producto restaurado = productoRepository.findById(producto.getId()).orElseThrow();
+        assertThat(restaurado.getStockDisponible()).isEqualTo(50);
+        assertThat(restaurado.getCostoUnitario()).isEqualByComparingTo("1000.00");
     }
 
     @Test
