@@ -991,7 +991,7 @@
         renderSidebar('ventas');
         inicializarFiltrosVentas();
         document.getElementById('ventaMetodoPago').addEventListener('change', toggleCamposCredito);
-        cargarDatos();
+        const cargaInicial = cargarDatos();
 
         function inicializarFiltrosVentas() {
             const hoy = new Date();
@@ -1287,7 +1287,12 @@
         // MODAL: NUEVA VENTA
         // ============================================================
 
-        function abrirModalNuevaVenta() {
+        async function abrirModalNuevaVenta() {
+            await cargaInicial;
+            if (!productos.length) {
+                showToast('No hay productos activos disponibles para registrar la venta', 'warning');
+                return false;
+            }
             ventaIdEditando = null;
             ventaIdOrigen = null;
             motivoCorreccionActual = '';
@@ -1308,13 +1313,14 @@
             lineaCounter = 0;
 
             poblarSelectClientes('ventaCliente');
+            openModal('modalNuevaVenta');
             agregarLineaProducto();
             toggleCamposCredito();
-            openModal('modalNuevaVenta');
+            return true;
         }
 
         async function abrirVentaCorregida(venta, detalles, motivo) {
-            abrirModalNuevaVenta();
+            if (!await abrirModalNuevaVenta()) return;
             ventaIdOrigen = venta.id;
             motivoCorreccionActual = motivo || venta.motivoAnulacion || 'Corrección de venta anulada';
 

@@ -568,7 +568,7 @@
         // ---- Inicialización ----
         checkSession();
         renderSidebar('cotizaciones');
-        cargarDatos();
+        const cargaInicial = cargarDatos();
 
         async function cargarDatos() {
             try {
@@ -739,16 +739,22 @@
         }
 
         // ---- MODAL: Nueva Cotización ----
-        function abrirModalNueva() {
+        async function abrirModalNueva() {
+    await cargaInicial;
+    if (!productos.length) {
+        showToast('No hay productos activos disponibles para crear la cotización', 'warning');
+        return;
+    }
     cotizacionIdEditando = null;
     document.querySelector('#modalNuevaCotizacion .modal-header h3').textContent = 'Nueva Cotización';
     document.getElementById('btnGuardarCotizacion').textContent = 'Guardar Cotización';
 
     resetFormCotizacion();
-    agregarLineaProducto();
     openModal('modalNuevaCotizacion');
+    agregarLineaProducto();
 }
 async function abrirModalEditar(id) {
+    await cargaInicial;
     const cotizacion = cotizaciones.find(c => c.id === id);
 
     if (!cotizacion) {
